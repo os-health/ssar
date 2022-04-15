@@ -1,0 +1,1 @@
+* * * * * root /usr/local/lib/os_health/ssar/healing.sh > /dev/null 2>&1

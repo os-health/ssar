@@ -1,0 +1,21 @@
+#!/bin/bash
+
+if [[ $(cat /proc/1/sched | head -n 1 | grep systemd) ]]; then
+    # in host
+    cp -f /usr/src/os_health/ssar/sresar.service /etc/systemd/system/sresar.service
+    chown root:root /etc/systemd/system/sresar.service
+    systemctl daemon-reload
+    systemctl is-enabled sresar.service && systemctl disable sresar.service
+    systemctl enable sresar.service
+    systemctl is-active sresar.service && systemctl stop sresar.service
+    systemctl start sresar.service
+else
+    # in docker
+    cp -f /usr/src/os_health/ssar/sresar.cron /etc/cron.d/sresar.cron
+    chown root:root /etc/cron.d/sresar.cron
+    cp -f /usr/src/os_health/ssar/sresard /etc/init.d/sresard
+    chown root:root /etc/init.d/sresard
+    chmod a+x /etc/init.d/sresard
+    chkconfig --add sresard
+    /usr/local/lib/os_health/ssar/healing.sh
+fi

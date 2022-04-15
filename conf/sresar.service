@@ -1,0 +1,16 @@
+[Unit]
+Description=sresar service
+ConditionPathExists=!/etc/ssar/sresar.disable
+
+[Service]
+Type=simple
+Restart=always
+StartLimitInterval=0
+StartLimitBurst=6000
+ExecStart=/usr/local/bin/sresar -D
+StandardOutput=journal
+StandardError=journal
+MemoryLimit=200M
+
+[Install]
+WantedBy=multi-user.target

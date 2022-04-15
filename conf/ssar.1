@@ -1,0 +1,588 @@
+.TH ssar 1 "August 2021" "ssar" "User Commands"
+.SH NAME
+ssar \- Collect, save and report system activity information. 
+.SH SYNOPSIS
+\fBssar\fP [OPTIONS] [SUBCOMMAND]
+.SH DESCRIPTION
+\fBssar\fP displays information about a history of the system activity information.
+.SH OPTIONS
+.TP
+\fB\-h, \-\-help\fP
+Print this help message and exit
+.TP
+\fB\-V, \-\-version\fP
+Print the version message and exit
+.TP
+\fB\-\-api\fP Excludes: --no-headers          
+If selected, output is json format, otherwise shell format.
+.TP
+\fB\-f, \-\-finish\fP \fITEXT\fR
+Assign the output datetime, allow history datetime. default value is current datetime.
+.TP
+\fB\-r, \-\-range\fP \fIINT\fR Excludes: --begin      
+Range from begin to finish, default 5 minutes.
+.TP
+\fB\-b, \-\-begin\fP \fITEXT\fR Excludes: --range     
+Assign the compare datetime by the finish
+.TP
+\fB\-H, \-\-no-headers\fP Excludes: --api       
+Disable the header info.
+.TP
+\fB\-P, \-\-purify\fP
+Hide the - * < > = no number data info..
+.TP
+\fB\-o, \-\-format\fP \fITEXT\fR Excludes: --extra --cpu --mem --job --sched
+User-defined format. syntax is field1,field2
+.TP
+\fB\-O, \-\-extra\fP \fITEXT\fR Excludes: --format    
+User-defined extra format. syntax is field1,field2
+.TP
+\fB\-\-cpu\fP Excludes: --format              
+Display cpu-oriented format.
+.TP
+\fB\-\-mem\fP Excludes: --format              
+Display virtual memory format.
+.TP
+\fB\-\-tcp\fP Excludes: --format              
+Display tcp format
+.TP
+\fB\-\-udp\fP Excludes: --format
+Display udp format
+.SH EXAMPLES:
+.TP
+To see every process on the system history using standard syntax:
+\fBssar
+.br
+\fBssar -V
+.br
+\fBssar --cpu
+.br
+\fBssar --mem
+.br
+\fBssar --tcp
+.br
+\fBssar --udp
+.br
+\fBssar -r 60
+.br
+\fBssar -f 2020-03-02T18:34:00
+.br
+\fBssar -f -10
+.br
+\fBssar -f -5.5h
+.br
+\fBssar -f -1.2d
+.br
+\fBssar -b 2020-03-02T17:34:00
+.br
+\fBssar -P
+.br
+\fBssar -H
+.br
+\fBssar -o 'shmem,meminfo:2:2,snmp|8|11|d'
+.br
+\fBssar -O "dev|eth0:|2|d;snmp:8:11:d" --cpu
+.br
+\fBssar -o 'metric=d:cfile=snmp:line=8:column=13:alias=retranssegs'
+.br
+\fBssar -o 'metric=c|cfile=meminfo|line_begin=MemFree:|column=2|alias=free'
+.br
+\fBssar -o 'metric=c|cfile=loadavg|line=1|column=1|dtype=float|alias=load1'
+.br
+\fBssar -o 'metric=c|cfile=loadavg|line=1|column=4|dtype=string|alias=runq_plit'
+.br
+\fBssar -o 'metric=d|cfile=stat|line=2|column=2-11|alias=cpu0_{column};'
+.br
+\fBssar -o 'metric=d|cfile=stat|line=2-17|column=5|alias=idle_{line};'
+.br
+\fBssar -f +10
+.br
+\fBssar -f +10 -i 5s
+.br
+\fBssar --api
+.SH FORMAT SPECIFIERS
+Here are the indicator exmaples.
+.PP
+For example:
+.B ssar
+.PP
+.TP
+\fBFIELD
+\fBDESCRIPTION
+.TP
+\fBuser/s
+The average user value per second from the previous time point to the current time point.
+.TP
+\fBdirty
+The scale value of the current point in time.
+.SH SUBCOMMANDS
+.TP
+\fBprocs
+all process subcommand.
+.TP
+\fBproc
+single process subcommand.
+.TP
+\fBload5s
+load list of five second precision sudcommand.
+.TP
+\fBload2p
+Load to process subcommand.
+.SH PROCS COMMAND OPTIONS
+.TP
+\fB\-h, \-\-help\fP
+Print this help message and exit
+.TP
+\fB\-\-api\fP Excludes: --no-headers          
+If selected, output is json format, otherwise shell format.
+.TP
+\fB\-f, \-\-finish\fP \fITEXT\fR
+Assign the output datetime, allow history datetime. default value is current datetime.
+.TP
+\fB\-r, \-\-range\fP \fIINT\fR Excludes: --begin      
+Range from begin to finish, default 5 minutes.
+.TP
+\fB\-b, \-\-begin\fP \fITEXT\fR Excludes: --range     
+Assign the compare datetime by the finish
+.TP
+\fB\-k, \-\-key, \-\-sort\fP \fITEXT\fR                  
+Specify sorting order. Sorting syntax is [+|-]key[,[+|-]key[,...]]
+.TP
+\fB\-l, \-\-lines\fP \fIINT\fR
+Limit the output.
+.TP
+\fB\-H, \-\-no-headers\fP Excludes: --api       
+Disable the header info.
+.TP
+\fB\-o, \-\-format\fP \fITEXT\fR Excludes: --extra --cpu --mem --job --sched
+User-defined format. syntax is field1,field2
+.TP
+\fB\-O, \-\-extra\fP \fITEXT\fR Excludes: --format    
+User-defined extra format. syntax is field1,field2
+.TP
+\fB\-\-cpu\fP Excludes: --format              
+Display cpu-oriented format.
+.TP
+\fB\-\-mem\fP Excludes: --format              
+Display virtual memory format.
+.TP
+\fB\-\-job\fP Excludes: --format              
+Display job control format
+.TP
+\fB\-\-sched\fP Excludes: --format
+Display sched format
+.SH PROCS COMMAND EXAMPLES:
+.TP
+To see every process on the system history using standard syntax:
+\fBssar procs
+.br
+\fBssar procs --cpu
+.br
+\fBssar procs --mem
+.br
+\fBssar procs --job
+.br
+\fBssar procs --sched
+.br
+\fBssar procs -r 60
+.br
+\fBssar procs -f 2020-03-02T18:34:00
+.br
+\fBssar procs -f -10
+.br
+\fBssar procs -f -5.5h
+.br
+\fBssar procs -f -1.2d
+.br
+\fBssar procs -b 2020-03-02T17:34:00
+.br
+\fBssar procs -k -ppid,pid,+start_datetime
+.br
+\fBssar procs -l 100
+.br
+\fBssar procs -H
+.br
+\fBssar procs -o ppid,pid,start_datetime
+.br
+\fBssar procs -O pgid
+.br
+\fBssar procs --api
+.SH PROCS COMMAND FORMAT SPECIFIERS
+Here are the keywords that may be used to control the output format (e.g. with option -o) or to sort the processes with the --sort option.
+.PP
+For example:
+.B ssar \-o pid \-\-sort rss
+.PP
+.TP
+\fBFIELD
+\fBDESCRIPTION
+.TP
+\fBpid
+a number representing the process ID (alias tgid).
+.TP
+\fBtgid
+alias pid.
+.TP
+\fBppid
+parent process ID.
+.TP
+\fBpgid
+process group ID or, equivalently, the process ID of the process group leader. 
+.TP
+\fBsid
+session ID or, equivalently, the process ID of the session leader.
+.TP
+\fBtpgid
+ID of the foreground process group on the tty (terminal) that the process is connected to, or -1 if the process is not connected to a tty.
+.TP
+\fBnlwp
+Number of lwps (threads) in the process.
+.TP
+\fBflags
+Flags associated with the process.
+.TP
+\fBsched
+Scheduling policy of the process. The policies SCHED_OTHER (SCHED_NORMAL), SCHED_FIFO, SCHED_RR, SCHED_BATCH, SCHED_ISO, and SCHED_IDLE are respectively displayed as 0, 1, 2, 3, 4, and 5.
+.TP
+\fBcls
+Scheduling class of the process, see also sched.  Field's possible values are TS(SCHED_OTHER) FF(SCHED_FIFO) RR(SCHED_RR) B(SCHED_BATCH) IDL(SCHED_IDLE)
+.TP
+\fBnice
+Nice value. This ranges from 19 (nicest) to -20 (not nice to others).
+.TP
+\fBrtprio
+Realtime priority. This ranges from 1 to 99.
+.TP
+\fBprio
+Priority of the process.  Higher number means lower priority.
+.TP
+\fBvcswch
+Total  number  of  voluntary context switches the task made.  A voluntary context switch occurs when a task blocks because it requires a resource that is unavailable.
+.TP
+\fBncswch
+Total number of non voluntary context switches the task made.  A involuntary  context  switch  takes  place when a task executes for the duration of its time slice and then is forced to relinquish the processor.
+.TP
+\fBvcswchs
+Total  number  of  voluntary context switches the task made per second.
+.TP
+\fBncswchs
+Total number of non voluntary context switches the task made per second.
+.TP
+\fBs
+minimal state display (one character).
+.TP
+\fBetimes
+elapsed time since the process was started, in seconds.
+.TP
+\fBetime
+elapsed time since the process was started, in the form [[DD-]hh:]mm:ss.
+.TP
+\fBstart_time
+time the command started, in seconds.
+.TP
+\fBstart_datetime
+time the command started. "YY-mm-ddThh:mm:ss" format.
+.TP
+\fBbegin_datetime
+time the range started, approximate begin. "YY-mm-ddThh:mm:ss" format.
+.TP
+\fBfinish_datetime
+time the range finished, approximate finish. "YY-mm-ddThh:mm:ss" format.
+.TP
+\fBrealtime
+time the duration, approximate range, in seconds.
+.TP
+\fBtime
+cumulative CPU time, in seconds.
+.TP
+\fButime
+cumulative CPU User time, in seconds.
+.TP
+\fBstime
+cumulative CPU Sys time, in seconds.
+.TP
+\fBcputime
+cumulative CPU time, "[DD-]hh:mm:ss" format.
+.TP
+\fBcpu_utime
+cumulative CPU user time, "[DD-]hh:mm:ss" format.
+.TP
+\fBcpu_stime
+cumulative CPU sys time, "[DD-]hh:mm:ss" format.
+.TP
+\fBtime_dlt
+delta CPU time from begin_datetime to finish_datetime, in seconds.
+.TP
+\fButime_dlt
+delta CPU utime from begin_datetime to finish_datetime, in seconds.
+.TP
+\fBstime_dlt
+delta CPU stime from begin_datetime to finish_datetime, in seconds.
+.TP
+\fBpcpu
+cpu utilization of the process in "##.#" format, (cputime delta)/realtime ratio.
+.TP
+\fBpucpu
+cpu utilization of the process in "##.#" format, (cpu_utime delta)/realtime ratio.
+.TP
+\fBpscpu
+cpu utilization of the process in "##.#" format, (cpu_stime delta)/realtime ratio.
+.TP
+\fBsize
+approximate amount of swap space that would be required if the process were to dirty all writable pages and then be swapped out.
+.TP
+\fBrss
+resident set size, the non-swapped physical memory that a task has used (in kiloBytes).
+.TP
+\fBmaj_flt
+The number of major page faults that have occurred with this process.
+.TP
+\fBmin_flt
+The number of minor page faults that have occurred with this process.
+.TP
+\fBrss_dlt
+delta rss from begin_datetime to finish_datetime.
+.TP
+\fBmaj_dlt
+delta maj_flt from begin_datetime to finish_datetime.
+.TP
+\fBmin_dlt
+delta min_flt from begin_datetime to finish_datetime.
+.TP
+\fBcmd
+command name (only the executable name).
+.TP
+\fBcmdline
+command with all its arguments as a string.
+.TP
+\fBfullcmd
+only cmd fullpath.
+.TP
+\fBb
+show the pid if exist at begin_datetime. if exist, value =, not exist value <.
+.SH PROC COMMAND OPTIONS
+.TP
+\fB\-h, \-\-help\fP
+Print this help message and exit
+.TP
+\fB\-\-api\fP Excludes: --no-headers          
+If selected, output is json format, otherwise shell format.
+.TP
+\fB\-p, \-\-pid\fP \fIINT\fR REQUIRED                 
+process id.
+.TP
+\fB\-i, \-\-interval\fP \fIINT\fR
+interval, default 10 minutes.
+.TP
+\fB\-f, \-\-finish\fP \fITEXT\fR
+Assign the output datetime, allow history datetime. default value is current datetime.
+.TP
+\fB\-r, \-\-range\fP \fIINT\fR Excludes: --begin      
+Range from begin to finish, default 300 minutes.
+.TP
+\fB\-b, \-\-begin\fP \fITEXT\fR Excludes: --range     
+Assign the compare datetime by the finish
+.TP
+\fB\-H, \-\-no-headers\fP Excludes: --api       
+Disable the header info.
+.TP
+\fB\-o, \-\-format\fP \fITEXT\fR Excludes: --extra --cpu --mem --job --sched
+User-defined format. syntax is field1,field2
+.TP
+\fB\-O, \-\-extra\fP \fITEXT\fR Excludes: --format    
+User-defined extra format. syntax is field1,field2
+.TP
+\fB\-\-cpu\fP Excludes: --format              
+Display cpu-oriented format.
+.TP
+\fB\-\-mem\fP Excludes: --format              
+Display virtual memory format.
+.SH PROC COMMAND EXAMPLES:
+.TP
+To see history of one process using standard syntax:
+\fBssar proc -p 1
+.br
+\fBssar proc -p 1 --cpu
+.br
+\fBssar proc -p 1 --mem
+.br
+\fBssar proc -p 1 -r 60
+.br
+\fBssar proc -p 1 -i 1
+.br
+\fBssar proc -p 1 -f 2020-03-02T18:34:00
+.br
+\fBssar proc -p 1 -f -10
+.br
+\fBssar proc -p 1 -f -5.5h
+.br
+\fBssar proc -p 1 -f -1.2d
+.br
+\fBssar proc -p 1 -b 2020-03-02T17:34:00
+.br
+\fBssar proc -p 1 -H
+.br
+\fBssar proc -p 1 -o ppid,pid,start_datetime
+.br
+\fBssar proc -p 1 -O pgid
+.br
+\fBssar proc -p 1 --api
+.br
+.SH PROC COMMAND FORMAT SPECIFIERS
+Here are the keywords that may be used to control the output format (e.g. with option -p).
+.PP
+For example:
+.B ssar proc \-p <pid>
+.PP
+.TP
+See also PROCS COMMAND FORMAT SPECIFIERS
+.PP
+.SH LOAD5S COMMAND OPTIONS
+.TP
+\fB\-h, \-\-help\fP
+Print this help message and exit
+.TP
+\fB\-\-api\fP Excludes: --no-headers          
+If selected, output is json format, otherwise shell format.
+.TP
+\fB\-f, \-\-finish\fP \fITEXT\fR
+Assign the output datetime, allow history datetime. default value is current datetime.
+.TP
+\fB\-r, \-\-range\fP \fIINT\fR Excludes: --begin      
+Range from begin to finish, default 300 minutes.
+.TP
+\fB\-b, \-\-begin\fP \fITEXT\fR Excludes: --range     
+Assign the compare datetime by the finish
+.TP
+\fB\-H, \-\-no-headers\fP Excludes: --api       
+Disable the header info.
+.TP
+\fB\-y, \-\-yes\fP \fIINT\fR Excludes: --zoom
+Just display Y sstate collect datetime.
+.TP
+\fB\-z, \-\-zoom\fP \fIINT\fR Excludes: --yes      
+Just display loadrd detail collect datetime.
+.SH LOAD5S COMMAND EXAMPLES:
+.TP
+To see history of one process using standard syntax:
+\fBssar load5s
+.br
+\fBssar load5s -r 60
+.br
+\fBssar load5s -f 2020-03-02T18:34:00
+.br
+\fBssar load5s -f -10
+.br
+\fBssar load5s -f -5.5h
+.br
+\fBssar load5s -f -1.2d
+.br
+\fBssar load5s -b 2020-03-02T17:34:00
+.br
+\fBssar load5s -H
+.br
+\fBssar load5s -y
+.br
+\fBssar load5s -z
+.br
+\fBssar load5s --api
+.br
+.SH LOAD5S COMMAND FORMAT SPECIFIERS
+Here are the keywords of the output format
+.PP
+For example:
+.B ssar load5s
+.PP
+.TP
+\fBFIELD
+\fBDESCRIPTION
+.TP
+\fBload5s
+load5s is 5 second precision load.
+.PP
+.SH LOAD2P COMMAND OPTIONS
+.TP
+\fB\-h, \-\-help\fP
+Print this help message and exit
+.TP
+\fB\-\-api\fP Excludes: --no-headers          
+If selected, output is json format, otherwise shell format.
+.TP
+\fB\-c, \-\-collect\fP \fIINT\fR REQUIRED
+collect datetime.
+.TP
+\fB\-l, \-\-lines\fP \fIINT\fR
+Limit the output.
+.TP
+\fB\-H, \-\-no-headers\fP Excludes: --api       
+Disable the header info.
+.TP
+\fB\-\-loadr\fP 
+Display loadr format.
+.TP
+\fB\-\-loadd\fP         
+Display loadd format.
+.TP
+\fB\-\-psr\fP         
+Display psr format.
+.TP
+\fB\-\-stackinfo\fP         
+Display stackinfo format.
+.TP
+\fB\-\-loadrd\fP         
+Display loadrd format.
+.TP
+\fB\-\-stack\fP         
+Display stack format.
+.SH LOAD2P COMMAND EXAMPLES:
+.TP
+To see history of one process using standard syntax:
+\fBssar load2p -c 2020-05-11T19:49:12
+.br
+\fBssar load2p -c 2020-05-11T19:49:12 -l 10
+.br
+\fBssar load2p -c 2020-05-11T19:49:12 -H
+.br
+\fBssar load2p -c 2020-05-11T19:49:12 --loadr
+.br
+\fBssar load2p -c 2020-05-11T19:49:12 --loadd
+.br
+\fBssar load2p -c 2020-05-11T19:49:12 --psr
+.br
+\fBssar load2p -c 2020-05-11T19:49:12 --stackinfo
+.br
+\fBssar load2p -c 2020-05-11T19:49:12 --loadrd
+.br
+\fBssar load2p -c 2020-05-11T19:49:12 --stack
+.br
+\fBssar load2p -c 2020-05-11T19:49:12 --loadd --stackinfo
+.br
+\fBssar load2p -c 2020-05-11T19:49:12 --api
+.br
+.SH LOAD2P COMMAND FORMAT SPECIFIERS
+Here are the keywords of the output format
+.PP
+For example:
+.B ssar load2p \-c <datetime>
+.PP
+.TP
+\fBFIELD
+\fBDESCRIPTION
+.TP
+\fBcount
+load count
+.PP
+.SH FILES
+.TP
+.I /etc/ssar/ssar.conf
+Configuration file for ssar.
+.TP
+.I /etc/ssar/sys.conf
+Configuration file for ssar sys indicator.
+.SH BUGS
+.I /proc
+filesystem must be mounted for the
+.B ssar
+command to work.
+
+All the statistics are not necessarily available, depending on the kernel version used.

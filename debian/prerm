@@ -1,0 +1,45 @@
+#!/bin/bash
+
+if [[ "$1" == "remove" ]]; then
+    if [[ $(cat /proc/1/sched | head -n 1 | grep systemd) ]]; then
+        # in host
+        systemctl stop    sresar.service
+        systemctl disable sresar.service
+        rm -f /etc/systemd/system/sresar.service
+        systemctl daemon-reload
+        systemctl reset-failed
+    else
+        # in docker
+        chkconfig --del sresard
+        rm -f /etc/cron.d/sresar.cron
+        rm -f /etc/init.d/sresard
+    fi
+
+    if [[ -e %{work_path}"/sre_proc/" ]];then
+        for i1 in $(ls %{work_path}"/sre_proc/")
+        do
+            rm -fr %{work_path}"/sre_proc/"${i1}
+            sleep 0.01
+        done
+        rm -fr %{work_path}"/sre_proc/"
+    fi
+
+    if [[ -e "/var/log/sre_proc/" ]];then
+        for i2 in $(ls "/var/log/sre_proc/")
+        do
+            rm -fr "/var/log/sre_proc/"${i2}
+            sleep 0.01
+        done
+        rm -fr "/var/log/sre_proc/"
+    fi
+
+    customized_work_path=$(cat /etc/ssar/ssar.conf | grep work_path | awk -F= '{print $2}')
+    if [[ -e ${customized_work_path}"/sre_proc/" ]];then
+        for i3 in $(ls ${customized_work_path}"/sre_proc/")
+        do
+            rm -fr ${customized_work_path}"/sre_proc/"${i3}
+            sleep 0.01
+        done
+        rm -fr ${customized_work_path}"/sre_proc/"
+    fi
+fi
