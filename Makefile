@@ -12,11 +12,11 @@ install:
 	install conf/sys.conf                /etc/ssar/
 	install -d                           /usr/src/os_health/ssar/
 	install conf/sresar.service          /usr/src/os_health/ssar/
-	install -d                           /usr/local/bin/
-	install ssar/ssar                    /usr/local/bin/ssar
-	install ssar/ssar+.py                /usr/local/bin/ssar+
-	install ssar/tsar2.py                /usr/local/bin/tsar2
-	install sresar/sresar                /usr/local/bin/sresar
+	install -d                           /usr/bin/
+	install ssar/ssar                    /usr/bin/ssar
+	install ssar/ssar+.py                /usr/bin/ssar+
+	install ssar/tsar2.py                /usr/bin/tsar2
+	install sresar/sresar                /usr/bin/sresar
 	install -d                           /run/lock/os_health/
 	touch                                /run/lock/os_health/sresar.pid
 	cp -f /usr/src/os_health/ssar/sresar.service /etc/systemd/system/sresar.service
@@ -53,8 +53,8 @@ uninstall:
 	fi
 	rm -fr /etc/ssar/
 	rm -fr /usr/src/os_health/ssar/
-	rm -f  /usr/local/bin/ssar
-	rm -f  /usr/local/bin/ssar+
-	rm -f  /usr/local/bin/tsar2
-	rm -f  /usr/local/bin/sresar
+	rm -f  /usr/bin/ssar
+	rm -f  /usr/bin/ssar+
+	rm -f  /usr/bin/tsar2
+	rm -f  /usr/bin/sresar
 	rm -fr /run/lock/os_health/

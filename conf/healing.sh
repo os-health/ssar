@@ -5,6 +5,6 @@ exec {FD}<> $LOCKFILE
 if [ ! -e /etc/ssar/sresar.disable ];then
     if flock -x -n $FD; then
         flock --unlock $FD
-        /usr/local/bin/sresar -D > /dev/null 2>&1 & 
+        /usr/bin/sresar -D > /dev/null 2>&1 & 
     fi
 fi

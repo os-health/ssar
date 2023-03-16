@@ -17,5 +17,5 @@ else
     chown root:root /etc/init.d/sresard
     chmod a+x /etc/init.d/sresard
     chkconfig --add sresard
-    /usr/local/lib/os_health/ssar/healing.sh
+    /usr/lib/os_health/ssar/healing.sh
 fi

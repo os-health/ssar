@@ -1,4 +1,6 @@
-# SRESAR
+## SRESAR
+
+English | [中文](README_zh-cn.md)
 
 SRESAR (Site Reliability Engineering System Activity Reporter) is a new addition to the family of sar tools and provides the overall specifications, process-level metrics and featured Load metrics.
 
@@ -37,16 +39,6 @@ Of course, collecting more data requires more disk storage. In the last 20 years
 
 To use, there are several methods:
 
-### Provide packages
-
-The project provides several packages for direct use.
-
-```bash
-$ git clone https://gitee.com/anolis/tracing-ssar.git
-$ ls ssar/package/
-ssar-1.0.2-1.an8.x86_64.rpm ssar-1.0.2-1.el7.x86_64.rpm ssar_1.0.2-1_amd64.deb
-```
-
 ### AnolisOS CentOS
 
 Method under AnolisOS and centos.
@@ -55,14 +47,13 @@ Method under AnolisOS and centos.
 $ yum install zlib-devel gcc-c++
 $ yum install rpm-build rpmdevtools git
 $ rpmdev-setuptree
-$ cd ~/
-$ git clone https://gitee.com/anolis/tracing-ssar.git
-$ cp -fr ~/ssar/* ~/rpmbuild/SOURCES/
-$ cd ~/rpmbuild/
-$ cp SOURCES/spec/ssar.spec SPECS/
-$ rpmbuild -bb SPECS/ssar.spec 
-$ cd RPMS/x86_64/
-$ sudo rpm -ivh ssar-1.0.2-1.an8.x86_64.rpm
+$ cd /tmp/
+$ git clone https://gitee.com/anolis/ssar.git
+$ tar -zcvf ~/rpmbuild/SOURCES/ssar-$(cat ssar/spec/ssar.spec |grep Version |awk '{print $2}').tar.gz ssar
+$ cp ssar/spec/ssar.spec ~/rpmbuild/SPECS/
+$ rpmbuild -bb ~/rpmbuild/SPECS/ssar.spec 
+$ cd ~/rpmbuild/RPMS/x86_64/
+$ sudo rpm -ivh $(ls)
 $ sudo rpm -e ssar                                             # remove package
 ```
 
@@ -74,10 +65,10 @@ Method under Ubuntu.
 $ apt-get update
 $ apt install zlib1g-dev git
 $ cd ~/
-$ git clone https://gitee.com/anolis/tracing-ssar.git
+$ git clone https://gitee.com/anolis/ssar.git
 $ cd ssar/debian
 $ ./build.sh
-$ dpkg -i ssar_1.0.2-1_amd64.deb
+$ dpkg -i ssar_*_amd64.deb
 $ dpkg -r ssar                                                 # remove package
 ```
 
@@ -88,7 +79,7 @@ Source code installation method (not recommended).
 ```bash
 $ yum install zlib-devel                                       # ubuntu need zlib1g-dev
 $ cd ~/
-$ git clone https://gitee.com/anolis/tracing-ssar.git
+$ git clone https://gitee.com/anolis/ssar.git
 $ make 
 $ sudo make install
 $ sudo make uninstall                                          # remove                                   
@@ -146,7 +137,7 @@ $ tsar2 cputop -l -i 1 -S sirq        # Displays the top 4 softirq cpu usage of 
 
 ## Reference
 
-for more usage with ssar tools，visit reference，[查看参考手册](./Reference_zh-CN.md)
+for more usage with ssar tools，visit reference，[查看参考手册](./README_zh-cn.md)
 
 ## LICENSE
 

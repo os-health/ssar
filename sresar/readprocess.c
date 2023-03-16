@@ -76,8 +76,11 @@ unsigned long get_btime(void) {
             break;
         }
     }
-    fclose(f);
-
+    if (f) {
+        fclose(f); 
+        f = NULL;
+    }
+    
     if(!found_btime) {
         fputs("missing btime in " STAT_FILE "\n", stderr);
         exit(1);

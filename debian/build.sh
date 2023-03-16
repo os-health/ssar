@@ -37,13 +37,13 @@ install -d                             ${buildrootdir}/usr/src/os_health/ssar/
 install $builddir/conf/sresar.service  ${buildrootdir}/usr/src/os_health/ssar/
 install $builddir/conf/sresar.cron     ${buildrootdir}/usr/src/os_health/ssar/
 install $builddir/conf/sresard         ${buildrootdir}/usr/src/os_health/ssar/
-install -d                             ${buildrootdir}/usr/local/lib/os_health/ssar/
-install $builddir/conf/healing.sh      ${buildrootdir}/usr/local/lib/os_health/ssar/healing.sh
-install -d                             ${buildrootdir}/usr/local/bin/
-install $builddir/ssar/ssar            ${buildrootdir}/usr/local/bin/ssar
-install $builddir/ssar/ssar+.py        ${buildrootdir}/usr/local/bin/ssar+
-install $builddir/ssar/tsar2.py        ${buildrootdir}/usr/local/bin/tsar2
-install $builddir/sresar/sresar        ${buildrootdir}/usr/local/bin/sresar
+install -d                             ${buildrootdir}/usr/lib/os_health/ssar/
+install $builddir/conf/healing.sh      ${buildrootdir}/usr/lib/os_health/ssar/healing.sh
+install -d                             ${buildrootdir}/usr/bin/
+install $builddir/ssar/ssar            ${buildrootdir}/usr/bin/ssar
+install $builddir/ssar/ssar+.py        ${buildrootdir}/usr/bin/ssar+
+install $builddir/ssar/tsar2.py        ${buildrootdir}/usr/bin/tsar2
+install $builddir/sresar/sresar        ${buildrootdir}/usr/bin/sresar
 install -d                             ${buildrootdir}/run/lock/os_health/
 touch                                  ${buildrootdir}/run/lock/os_health/sresar.pid
 

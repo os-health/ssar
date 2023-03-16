@@ -52,7 +52,7 @@ using namespace cpptoml;
 using namespace std;
 using json = nlohmann::json;
 
-#define VERSION "1.0.2"
+#define VERSION "1.0.4"
 #define AREA_LINE 20
 const string sresar_suffix = "sresar25";
 const string cmdline_suffix = "cmdline";
@@ -717,127 +717,148 @@ void InitOptions(SeqOptions &seq_option){
         seq_option.time_point_collect = chrono::time_point_cast<chrono::seconds>(it_time_point_collect);
     }
 
-    // init time_point_finish
-    chrono::system_clock::time_point it_time_point_finish;
-    if(seq_option.finish.empty()){
-        it_time_point_finish = seq_option.time_point_finish;
-    }else{
-        if(0 == seq_option.finish.find("-", 0)){
-            string finish_str = seq_option.finish.substr(1);
-            int finish_int = 0;
-            if((finish_str.size()-1) == finish_str.rfind("d", (finish_str.size()-1))){
-                finish_int = int(24 * 60 * stof(finish_str.substr(0,(finish_str.size()-1))));
-            }else if((finish_str.size()-1) == finish_str.rfind("h", (finish_str.size()-1))){
-                finish_int = int(60 * stof(finish_str.substr(0,(finish_str.size()-1))));
-            }else if((finish_str.size()-1) == finish_str.rfind("m", (finish_str.size()-1))){
-                finish_int = int(stof(finish_str.substr(0,(finish_str.size()-1))));
-            }else{
-                finish_int = int(stof(finish_str));
-            }
-            it_time_point_finish = chrono::system_clock::now() - chrono::duration<int>(60 * finish_int);
-        }else if(0 == seq_option.finish.find("+", 0) && "sys" == seq_option.src){
-            if("sys" == seq_option.src){
-                string finish_str = seq_option.finish.substr(1);
-                int finish_int = 0;
-                if(finish_str.empty()){
-                    finish_int = 1440;
-                }else if((finish_str.size()-1) == finish_str.rfind("d", (finish_str.size()-1))){
-                    finish_int = int(24 * 60 * stof(finish_str.substr(0,(finish_str.size()-1))));
-                }else if((finish_str.size()-1) == finish_str.rfind("h", (finish_str.size()-1))){
-                    finish_int = int(60 * stof(finish_str.substr(0,(finish_str.size()-1))));
-                }else if((finish_str.size()-1) == finish_str.rfind("m", (finish_str.size()-1))){
-                    finish_int = int(stof(finish_str.substr(0,(finish_str.size()-1))));
-                }else{
-                    finish_int = int(stof(finish_str));
-                }
-                it_time_point_finish = chrono::system_clock::now() + chrono::duration<int>(60 * finish_int);
-                seq_option.live_mode = true;
-            }else{
-                string exception_info = "finish datetime is not correct.";
-                throw exception_info;
-            }
-        }else{
-            if(-1 == DetectDatetime(seq_option.finish, it_time_point_finish)){
-                throw ssar_cli::THROW_FINISH_DATETIME;
-            }
-            if(it_time_point_finish > chrono::system_clock::now()){
-                throw ssar_cli::THROW_FINISH_DATETIME;
-            }
-        }
-    }
-    if("load5s" == seq_option.src || ("sys" == seq_option.src && seq_option.live_mode)){
-        seq_option.time_point_finish = chrono::time_point_cast<chrono::seconds>(it_time_point_finish);
-    }else{
-        seq_option.time_point_finish = chrono::time_point_cast<chrono::minutes>(it_time_point_finish);
+    // check option exclusive
+    if ((!seq_option.finish.empty() + !seq_option.begin.empty() + (seq_option.range > 0)) > 2) {
+        string exception_info = "option --finish --range --begin is not allowed at the same time.";
+        throw exception_info;
     }
 
-    // init range
-    if(seq_option.range){
-        if(seq_option.live_mode){
+    // live_mode
+    if (!seq_option.finish.empty() && 0 == seq_option.finish.find("+", 0)) {
+        if ("sys" == seq_option.src) {
+            seq_option.live_mode = true;
+        } else {
+            string exception_info = "finish datetime is not correct.";
+            throw exception_info;
+        }
+    }
+    chrono::system_clock::time_point it_time_point_finish;
+    chrono::system_clock::time_point tmp_time_point_finish;
+    chrono::system_clock::time_point it_time_point_begin;
+    SreProc it_sre_proc;
+    string time_begin_hard;
+    if (seq_option.live_mode) {
+        string finish_str = seq_option.finish.substr(1);
+        int finish_int = 0;
+        if (finish_str.empty()) {
+            finish_int = 1440;
+        } else if ((finish_str.size()-1) == finish_str.rfind("d", (finish_str.size() - 1))) {
+            finish_int = int(24 * 60 * stof(finish_str.substr(0, (finish_str.size() - 1))));
+        } else if ((finish_str.size()-1) == finish_str.rfind("h", (finish_str.size() - 1))) {
+            finish_int = int(60 * stof(finish_str.substr(0,(finish_str.size()-1))));
+        } else if ((finish_str.size()-1) == finish_str.rfind("m", (finish_str.size() - 1))) {
+            finish_int = int(stof(finish_str.substr(0,(finish_str.size()-1))));
+        } else {
+            finish_int = int(stof(finish_str));
+        }
+        it_time_point_finish = chrono::system_clock::now() + chrono::duration<int>(60 * finish_int);
+        seq_option.time_point_finish = chrono::time_point_cast<chrono::seconds>(it_time_point_finish);
+
+        if (seq_option.range) {
             string exception_info = "when live mode, --range is needless.";
             throw exception_info;
         }
-        if(seq_option.range < 0){
+
+        if (!seq_option.begin.empty()) {
+            string exception_info = "when live mode, --begin is needless.";
+            throw exception_info;
+        }
+        it_time_point_begin = chrono::system_clock::now();
+        seq_option.time_point_begin = chrono::time_point_cast<chrono::seconds>(it_time_point_begin);
+
+        goto time_point_end;
+    }
+
+    // init range
+    if (seq_option.range) {
+        if (seq_option.range < 0) {
             string exception_info = "range must more than 0.";
             throw exception_info;
         }
         seq_option.duration_range = chrono::duration<int>(60 * seq_option.range);
-    }else{
-        if("proc" == seq_option.src || "sys" == seq_option.src){
+    } else {
+        if (("proc" == seq_option.src || "sys" == seq_option.src) && seq_option.begin.empty()) {
             seq_option.duration_range = chrono::duration<int>(60 * 60 * 5);    // 5 hour
         }
     }
 
-    // init begin
-    chrono::system_clock::time_point it_time_point_begin;
-    if(seq_option.begin.empty()){
-        if(seq_option.live_mode){
-            it_time_point_begin = chrono::system_clock::now();
-        }else{
-            it_time_point_begin = seq_option.time_point_finish - seq_option.duration_range;
-        }
+    // init time_point_finish
+    if (seq_option.finish.empty()) {
+        it_time_point_finish = seq_option.time_point_finish;
     }else{
-        if(seq_option.live_mode){
-            string exception_info = "when live mode, --begin is needless.";
-            throw exception_info;
+        if (0 == seq_option.finish.find("-", 0)) {
+            string finish_str = seq_option.finish.substr(1);
+            int finish_int = 0;
+            if ((finish_str.size() - 1) == finish_str.rfind("d", (finish_str.size() - 1))) {
+                finish_int = int(24 * 60 * stof(finish_str.substr(0, (finish_str.size() - 1))));
+            } else if ((finish_str.size()-1) == finish_str.rfind("h", (finish_str.size() - 1))) {
+                finish_int = int(60 * stof(finish_str.substr(0, (finish_str.size()-1))));
+            } else if ((finish_str.size()-1) == finish_str.rfind("m", (finish_str.size() - 1))) {
+                finish_int = int(stof(finish_str.substr(0, (finish_str.size() - 1))));
+            } else {
+                finish_int = int(stof(finish_str));
+            }
+            it_time_point_finish = chrono::system_clock::now() - chrono::duration<int>(60 * finish_int);
+        } else {
+            if (-1 == DetectDatetime(seq_option.finish, it_time_point_finish)) {
+                throw ssar_cli::THROW_FINISH_DATETIME;
+            }
+            if (it_time_point_finish > chrono::system_clock::now()) {
+                throw ssar_cli::THROW_FINISH_DATETIME;
+            }
         }
-        if(-1 == DetectDatetime(seq_option.begin, it_time_point_begin)){
+    }
+
+    // init begin
+    if (seq_option.begin.empty()) {
+        it_time_point_begin = it_time_point_finish - seq_option.duration_range;
+    } else {
+        if (-1 == DetectDatetime(seq_option.begin, it_time_point_begin)) {
             throw ssar_cli::THROW_BEGIN_DATETIME;
         }
     }
+
+    if (seq_option.finish.empty() && !seq_option.begin.empty() && seq_option.range) {
+        tmp_time_point_finish = it_time_point_begin + seq_option.duration_range;
+        if (tmp_time_point_finish < it_time_point_finish) {
+            it_time_point_finish = tmp_time_point_finish;
+        }
+    }
+
     if("load5s" == seq_option.src){
         seq_option.time_point_begin = chrono::time_point_cast<chrono::seconds>(it_time_point_begin);
+        seq_option.time_point_finish = chrono::time_point_cast<chrono::seconds>(it_time_point_finish);
     }else{
         seq_option.time_point_begin = chrono::time_point_cast<chrono::minutes>(it_time_point_begin);
+        seq_option.time_point_finish = chrono::time_point_cast<chrono::minutes>(it_time_point_finish);
     }
+
     if(seq_option.time_point_begin >= seq_option.time_point_finish){
         throw ssar_cli::THROW_BEGIN_COMPARE_FINISH;
     }
-
-    if(!seq_option.live_mode){
-        SreProc it_sre_proc;
-        if(0 != it_sre_proc.MakeDataHours(seq_option.data_path)){
-            string exception_info = "";             // no live mode must have config file.
-            if(seq_option.ssar_conf){
-                exception_info = "Data Paths in config file is not exist: " + seq_option.data_path;
-            }else{
-                exception_info = "Data Paths in default config is not exist: " + seq_option.data_path;
-            }
-            throw exception_info;
+    if (0 != it_sre_proc.MakeDataHours(seq_option.data_path)) {
+        string exception_info = "";             // no live mode must have config file.
+        if (seq_option.ssar_conf) {
+            exception_info = "Data Paths in config file is not exist: " + seq_option.data_path;
+        } else {
+            exception_info = "Data Paths in default config is not exist: " + seq_option.data_path;
         }
-        string time_begin_hard = it_sre_proc.GetFirstHour() + "0000";
-        if(-1 == ParserDatetime(time_begin_hard, seq_option.time_point_begin_hard, "%Y%m%d%H%M%S")){
-            string exception_info = "parser time_begin_hard datetime is fail.";
-            throw exception_info;
-        }
-        if(seq_option.time_point_finish <= seq_option.time_point_begin_hard){
-            string exception_info = "time_point_finish " + FmtDatetime(seq_option.time_point_finish) + " can't lower than time_begin_hard " + FmtDatetime(seq_option.time_point_begin_hard) + ".";
-            throw exception_info;
-        }
-        if(seq_option.time_point_begin < seq_option.time_point_begin_hard){
-            seq_option.time_point_begin = seq_option.time_point_begin_hard;
-        }
+        throw exception_info;
     }
+    time_begin_hard = it_sre_proc.GetFirstHour() + "0000";
+    if (-1 == ParserDatetime(time_begin_hard, seq_option.time_point_begin_hard, "%Y%m%d%H%M%S")) {
+        string exception_info = "parser time_begin_hard datetime is fail.";
+        throw exception_info;
+    }
+    if (seq_option.time_point_finish <= seq_option.time_point_begin_hard) {
+        string exception_info = "time_point_finish " + FmtDatetime(seq_option.time_point_finish) + " can't lower than time_begin_hard " + FmtDatetime(seq_option.time_point_begin_hard) + ".";
+        throw exception_info;
+    }
+    if (seq_option.time_point_begin < seq_option.time_point_begin_hard) {
+        seq_option.time_point_begin = seq_option.time_point_begin_hard;
+    }
+
+time_point_end:
 
     // init key
     if(!seq_option.key.empty()){
@@ -1024,7 +1045,6 @@ void InitEnv(SeqOptions &seq_option){
     bool cross_reboot = false;
     if(-1 == ReadRebootTimes(seq_option.reboot_times)){
         string exception_info = "set utmpx name failed.";
-        throw exception_info;
     }
     stringstream exception_info;
     auto i_element = (*seq_option.reboot_times).cbegin();
@@ -4182,7 +4202,7 @@ int main(int argc, char *argv[]){
     CLI::Option* cli_sys_api_option       = cli_global.add_flag("--api", opts.api, "If selected, output is json format, otherwise shell format.");
     CLI::Option* cli_sys_finish_option    = cli_global.add_option("--finish,-f", opts.finish, "Assign the output datetime, allow history datetime. default value is current datetime.");
     CLI::Option* cli_sys_range_option     = cli_global.add_option("--range,-r", opts.range, "Range from begin to finish, default 300 minutes.");
-    CLI::Option* cli_sys_begin_option     = cli_global.add_option("--begin,-b", opts.begin, "Assign the compare datetime by the finish")->excludes(cli_sys_range_option);
+    CLI::Option* cli_sys_begin_option     = cli_global.add_option("--begin,-b", opts.begin, "Assign the compare datetime by the finish");
     CLI::Option* cli_sys_interval_option  = cli_global.add_option("--interval,-i", opts.interval, "interval, default 10 minutes.");
     CLI::Option* cli_sys_noheaders_option = cli_global.add_flag("--no-headers,-H", opts.noheaders, "Disable the header info.")->excludes(cli_sys_api_option);
     CLI::Option* cli_sys_purify_option    = cli_global.add_flag("--purify,-P", opts.purify, "Hide the - * < > = no number data info.");
@@ -4199,7 +4219,7 @@ int main(int argc, char *argv[]){
     CLI::Option* cli_global_api_option = cli_procs->add_flag("--api", opts.api, "If selected, output is json format, otherwise shell format.");
     cli_procs->add_option("--finish,-f", opts.finish,"Assign the output datetime, allow history datetime. default value is current datetime.");
     CLI::Option* cli_global_range_option = cli_procs->add_option("--range,-r", opts.range, "Range from begin to finish, default 1 minutes.");
-    cli_procs->add_option("--begin,-b", opts.begin, "Assign the compare datetime by the finish")->excludes(cli_global_range_option);
+    cli_procs->add_option("--begin,-b", opts.begin, "Assign the compare datetime by the finish");
     cli_procs->add_option("--key,--sort,-k", opts.key, "Specify sorting order. Sorting syntax is [+|-]key[,[+|-]key[,...]]");
     cli_procs->add_option("--lines,-l", opts.lines, "Limit the output.");
     cli_procs->add_flag("--no-headers,-H", opts.noheaders, "Disable the header info.")->excludes(cli_global_api_option);
@@ -4224,7 +4244,7 @@ int main(int argc, char *argv[]){
     cli_proc->add_option("--pid,-p", opts.pid, "process id.")->required();
     cli_proc->add_option("--finish,-f", opts.finish, "Assign the output datetime, allow history datetime. default value is current datetime.");
     CLI::Option* cli_proc_range_option = cli_proc->add_option("--range,-r", opts.range, "Range from begin to finish, default 300 minutes.");
-    cli_proc->add_option("--begin,-b", opts.begin, "Assign the compare datetime by the finish")->excludes(cli_proc_range_option);
+    cli_proc->add_option("--begin,-b", opts.begin, "Assign the compare datetime by the finish");
     cli_proc->add_option("--interval,-i", opts.interval, "interval, default 10 minutes..");
     cli_proc->add_flag("--no-headers,-H", opts.noheaders, "Disable the header info.")->excludes(cli_proc_api_option);
     cli_proc->add_flag("--purify,-P", opts.purify, "Hide the - * < > = no number data info.");
@@ -4246,7 +4266,7 @@ int main(int argc, char *argv[]){
     CLI::Option* cli_load5s_api_option = cli_load5s->add_flag("--api", opts.api,"If selected, output is json format, otherwise shell format.");
     cli_load5s->add_option("--finish,-f",opts.finish,"Assign the output datetime, allow history datetime. default value is current datetime.");
     CLI::Option* cli_load5s_range_option = cli_load5s->add_option("--range,-r", opts.range, "Range from begin to finish, default 5 minutes.");
-    cli_load5s->add_option("--begin,-b", opts.begin, "Assign the compare datetime by the finish")->excludes(cli_load5s_range_option);
+    cli_load5s->add_option("--begin,-b", opts.begin, "Assign the compare datetime by the finish");
     cli_load5s->add_flag("--no-headers,-H", opts.noheaders, "Disable the header info.")->excludes(cli_load5s_api_option);
     CLI::Option* cli_load5s_yes_option = cli_load5s->add_flag("--yes,-y", opts.yes, "Just display Y sstate collect datetime.");
     cli_load5s->add_flag("--zoom,-z", opts.zoom, "Just display loadrd detail collect datetime.")->excludes(cli_load5s_yes_option);

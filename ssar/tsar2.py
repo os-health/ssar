@@ -628,7 +628,7 @@ def init_cputop():
 
     if not opts.sort:
         opts.sort = "util"
-    if opts.sort not in ["user", "sys", "wait", "hirq", "sirq", "idle", "util"]:   # validate sort
+    if opts.sort not in ["user", "sys", "wait", "hirq", "sirq", "idle", "steal", "guest", "util"]:   # validate sort
         raise Exception(opts.sort + " is not correct.")
 
     # init items
@@ -677,16 +677,7 @@ def procs():
 def concatenate_cputop():
     scmd = "ssar -P --api -o '"
     for it_device in opts.items:
-        scmd += "metric=d:cfile=stat:line_begin=cpu{item}:column=2:alias={item}_user;".format(item=it_device)
-        scmd += "metric=d:cfile=stat:line_begin=cpu{item}:column=3:alias={item}_nice;".format(item=it_device)
-        scmd += "metric=d:cfile=stat:line_begin=cpu{item}:column=4:alias={item}_system;".format(item=it_device)
-        scmd += "metric=d:cfile=stat:line_begin=cpu{item}:column=5:alias={item}_idle;".format(item=it_device)
-        scmd += "metric=d:cfile=stat:line_begin=cpu{item}:column=6:alias={item}_iowait;".format(item=it_device)
-        scmd += "metric=d:cfile=stat:line_begin=cpu{item}:column=7:alias={item}_irq;".format(item=it_device)
-        scmd += "metric=d:cfile=stat:line_begin=cpu{item}:column=8:alias={item}_softirq;".format(item=it_device)
-        scmd += "metric=d:cfile=stat:line_begin=cpu{item}:column=9:alias={item}_steal;".format(item=it_device)
-        scmd += "metric=d:cfile=stat:line_begin=cpu{item}:column=10:alias={item}_guest;".format(item=it_device)
-        scmd += "metric=d:cfile=stat:line_begin=cpu{item}:column=11:alias={item}_guest_nice;".format(item=it_device)
+        scmd += "metric=d|cfile=stat|line_begin=cpu{item}|column=2-11|alias={item}_{{column}};".format(item=it_device)
 
     scmd += "'"
     if opts.formatted_finish:
@@ -706,25 +697,27 @@ def display_cputop_lines(it_line, i):
 
     new_line = {}
     for it_device in opts.items:
-        it_stat_user       = float(it_line[str(it_device) + '_user'])
-        it_stat_nice       = float(it_line[str(it_device) + '_nice'])
-        it_stat_system     = float(it_line[str(it_device) + '_system'])
-        it_stat_idle       = float(it_line[str(it_device) + '_idle'])
-        it_stat_iowait     = float(it_line[str(it_device) + '_iowait'])
-        it_stat_irq        = float(it_line[str(it_device) + '_irq'])
-        it_stat_softirq    = float(it_line[str(it_device) + '_softirq'])
-        it_stat_steal      = float(it_line[str(it_device) + '_steal'])
-        it_stat_guest      = float(it_line[str(it_device) + '_guest'])
-        it_stat_guest_nice = float(it_line[str(it_device) + '_guest_nice'])
+        it_stat_user       = float(it_line[str(it_device) + '_2'])
+        it_stat_nice       = float(it_line[str(it_device) + '_3'])
+        it_stat_system     = float(it_line[str(it_device) + '_4'])
+        it_stat_idle       = float(it_line[str(it_device) + '_5'])
+        it_stat_iowait     = float(it_line[str(it_device) + '_6'])
+        it_stat_irq        = float(it_line[str(it_device) + '_7'])
+        it_stat_softirq    = float(it_line[str(it_device) + '_8'])
+        it_stat_steal      = float(it_line[str(it_device) + '_9'])
+        it_stat_guest      = float(it_line[str(it_device) + '_10'])
+        it_stat_guest_nice = float(it_line[str(it_device) + '_11'])
 
-        it_stat_cpu_times = it_stat_user +it_stat_nice +it_stat_system +it_stat_idle +it_stat_iowait +it_stat_irq +it_stat_softirq +it_stat_steal +it_stat_guest +it_stat_guest_nice
-        it_cpu_user = 100 * it_stat_user    / it_stat_cpu_times
-        it_cpu_sys  = 100 * it_stat_system  / it_stat_cpu_times
-        it_cpu_wait = 100 * it_stat_iowait  / it_stat_cpu_times
-        it_cpu_hirq = 100 * it_stat_irq     / it_stat_cpu_times
-        it_cpu_sirq = 100 * it_stat_softirq / it_stat_cpu_times
-        it_cpu_idle = 100 * it_stat_idle    / it_stat_cpu_times
-        it_cpu_util = 100 * (it_stat_cpu_times - it_stat_idle - it_stat_iowait - it_stat_steal) / it_stat_cpu_times
+        it_stat_cpu_times = it_stat_user +it_stat_nice +it_stat_system +it_stat_idle +it_stat_iowait +it_stat_irq +it_stat_softirq +it_stat_steal
+        it_cpu_user  = 100 * it_stat_user    / it_stat_cpu_times
+        it_cpu_sys   = 100 * it_stat_system  / it_stat_cpu_times
+        it_cpu_wait  = 100 * it_stat_iowait  / it_stat_cpu_times
+        it_cpu_hirq  = 100 * it_stat_irq     / it_stat_cpu_times
+        it_cpu_sirq  = 100 * it_stat_softirq / it_stat_cpu_times
+        it_cpu_idle  = 100 * it_stat_idle    / it_stat_cpu_times
+        it_cpu_steal = 100 * it_stat_steal   / it_stat_cpu_times
+        it_cpu_guest = 100 * it_stat_guest   / it_stat_cpu_times
+        it_cpu_util  = 100 * (it_stat_cpu_times - it_stat_idle - it_stat_iowait - it_stat_steal) / it_stat_cpu_times
 
         if opts.sort == "user":
             new_line[str(it_device) + "_" + opts.sort] = it_cpu_user
@@ -738,6 +731,10 @@ def display_cputop_lines(it_line, i):
             new_line[str(it_device) + "_" + opts.sort] = it_cpu_sirq
         elif opts.sort == "idle":
             new_line[str(it_device) + "_" + opts.sort] = it_cpu_idle
+        elif opts.sort == "steal":
+            new_line[str(it_device) + "_" + opts.sort] = it_cpu_steal
+        elif opts.sort == "guest":
+            new_line[str(it_device) + "_" + opts.sort] = it_cpu_guest
         elif opts.sort == "util":
             new_line[str(it_device) + "_" + opts.sort] = it_cpu_util
  
@@ -1075,16 +1072,7 @@ def concatenate_ssar():
     for it_view in opts.picks:
         if it_view == "cpu":
             for it_device in opts.formats_devices['cpu']:
-                scmd += "metric=d:cfile=stat:line_begin={item}:column=2:alias={item}_stat_user;".format(item=it_device)
-                scmd += "metric=d:cfile=stat:line_begin={item}:column=3:alias={item}_stat_nice;".format(item=it_device)
-                scmd += "metric=d:cfile=stat:line_begin={item}:column=4:alias={item}_stat_system;".format(item=it_device)
-                scmd += "metric=d:cfile=stat:line_begin={item}:column=5:alias={item}_stat_idle;".format(item=it_device)
-                scmd += "metric=d:cfile=stat:line_begin={item}:column=6:alias={item}_stat_iowait;".format(item=it_device)
-                scmd += "metric=d:cfile=stat:line_begin={item}:column=7:alias={item}_stat_irq;".format(item=it_device)
-                scmd += "metric=d:cfile=stat:line_begin={item}:column=8:alias={item}_stat_softirq;".format(item=it_device)
-                scmd += "metric=d:cfile=stat:line_begin={item}:column=9:alias={item}_stat_steal;".format(item=it_device)
-                scmd += "metric=d:cfile=stat:line_begin={item}:column=10:alias={item}_stat_guest;".format(item=it_device)
-                scmd += "metric=d:cfile=stat:line_begin={item}:column=11:alias={item}_stat_guest_nice;".format(item=it_device)
+                scmd += "metric=d|cfile=stat|line_begin={item}|column=2-11|alias={item}_stat_{{column}};".format(item=it_device)
         elif it_view == "mem":
             scmd += "metric=c|cfile=meminfo|line_begin=MemTotal:|column=2|alias=meminfo_total;"
             scmd += "metric=c|cfile=meminfo|line_begin=MemFree:|column=2|alias=meminfo_free;"
@@ -1142,6 +1130,7 @@ def concatenate_ssar():
             scmd += "metric=c|cfile=loadavg|line=1|column=2|dtype=float|alias=loadavg_load5;"
             scmd += "metric=c|cfile=loadavg|line=1|column=3|dtype=float|alias=loadavg_load15;"
             scmd += "metric=c|cfile=loadavg|line=1|column=4|dtype=string|alias=loadavg_runq_plit;"
+            scmd += "metric=c|cfile=stat|line_begin=procs_blocked|column=2|alias=stat_blocked;"
         elif it_view == "tcpofo":
             tcp_ext = get_line_file("TcpExt:", "/proc/net/netstat")
 
@@ -1337,24 +1326,27 @@ def display_lines(it_line, i, agregates = {}):
 
     if "cpu" in opts.picks:
         for it_device in opts.formats_devices['cpu']:
-            it_stat_user       = float(it_line[it_device+'_stat_user'])
-            it_stat_nice       = float(it_line[it_device+'_stat_nice'])
-            it_stat_system     = float(it_line[it_device+'_stat_system'])
-            it_stat_idle       = float(it_line[it_device+'_stat_idle'])
-            it_stat_iowait     = float(it_line[it_device+'_stat_iowait'])
-            it_stat_irq        = float(it_line[it_device+'_stat_irq'])
-            it_stat_softirq    = float(it_line[it_device+'_stat_softirq'])
-            it_stat_steal      = float(it_line[it_device+'_stat_steal'])
-            it_stat_guest      = float(it_line[it_device+'_stat_guest'])
-            it_stat_guest_nice = float(it_line[it_device+'_stat_guest_nice'])
+            it_stat_user       = float(it_line[it_device+'_stat_2'])
+            it_stat_nice       = float(it_line[it_device+'_stat_3'])
+            it_stat_system     = float(it_line[it_device+'_stat_4'])
+            it_stat_idle       = float(it_line[it_device+'_stat_5'])
+            it_stat_iowait     = float(it_line[it_device+'_stat_6'])
+            it_stat_irq        = float(it_line[it_device+'_stat_7'])
+            it_stat_softirq    = float(it_line[it_device+'_stat_8'])
+            it_stat_steal      = float(it_line[it_device+'_stat_9'])
+            it_stat_guest      = float(it_line[it_device+'_stat_10'])
+            it_stat_guest_nice = float(it_line[it_device+'_stat_11'])
 
-            it_stat_cpu_times = it_stat_user +it_stat_nice +it_stat_system +it_stat_idle +it_stat_iowait +it_stat_irq +it_stat_softirq +it_stat_steal +it_stat_guest +it_stat_guest_nice
-            it_cpu_user = 100 * it_stat_user    / it_stat_cpu_times
-            it_cpu_sys  = 100 * it_stat_system  / it_stat_cpu_times
-            it_cpu_wait = 100 * it_stat_iowait  / it_stat_cpu_times
-            it_cpu_hirq = 100 * it_stat_irq     / it_stat_cpu_times
-            it_cpu_sirq = 100 * it_stat_softirq / it_stat_cpu_times
-            it_cpu_util = 100 * (it_stat_cpu_times - it_stat_idle - it_stat_iowait - it_stat_steal) / it_stat_cpu_times
+            it_stat_cpu_times = it_stat_user +it_stat_nice +it_stat_system +it_stat_idle +it_stat_iowait +it_stat_irq +it_stat_softirq +it_stat_steal
+            it_cpu_user  = 100 * it_stat_user    / it_stat_cpu_times
+            it_cpu_sys   = 100 * it_stat_system  / it_stat_cpu_times
+            it_cpu_wait  = 100 * it_stat_iowait  / it_stat_cpu_times
+            it_cpu_hirq  = 100 * it_stat_irq     / it_stat_cpu_times
+            it_cpu_sirq  = 100 * it_stat_softirq / it_stat_cpu_times
+            it_cpu_idle  = 100 * it_stat_idle    / it_stat_cpu_times
+            it_cpu_steal = 100 * it_stat_steal   / it_stat_cpu_times
+            it_cpu_guest = 100 * it_stat_guest   / it_stat_cpu_times
+            it_cpu_util  = 100 * (it_stat_cpu_times - it_stat_idle - it_stat_iowait - it_stat_steal) / it_stat_cpu_times
 
             if not opts.live:
                 agregates[it_device+'_cpu_user'].append(it_cpu_user)
@@ -1363,6 +1355,9 @@ def display_lines(it_line, i, agregates = {}):
                 agregates[it_device+'_cpu_hirq'].append(it_cpu_hirq)
                 agregates[it_device+'_cpu_sirq'].append(it_cpu_sirq)
                 agregates[it_device+'_cpu_util'].append(it_cpu_util)
+                agregates[it_device+'_cpu_idle'].append(it_cpu_idle)
+                agregates[it_device+'_cpu_steal'].append(it_cpu_steal)
+                agregates[it_device+'_cpu_guest'].append(it_cpu_guest)
 
             it_line[it_device+'_cpu_user'] = '{:>7}'.format(format_bytes(it_cpu_user))
             it_line[it_device+'_cpu_sys']  = '{:>7}'.format(format_bytes(it_cpu_sys))
@@ -1370,6 +1365,9 @@ def display_lines(it_line, i, agregates = {}):
             it_line[it_device+'_cpu_hirq'] = '{:>7}'.format(format_bytes(it_cpu_hirq))
             it_line[it_device+'_cpu_sirq'] = '{:>7}'.format(format_bytes(it_cpu_sirq))
             it_line[it_device+'_cpu_util'] = '{:>7}'.format(format_bytes(it_cpu_util))
+            it_line[it_device+'_cpu_idle'] = '{:>7}'.format(format_bytes(it_cpu_idle))
+            it_line[it_device+'_cpu_steal'] = '{:>7}'.format(format_bytes(it_cpu_steal))
+            it_line[it_device+'_cpu_guest'] = '{:>7}'.format(format_bytes(it_cpu_guest))
 
     if "mem" in opts.picks:
         meminfo_total     = 1024 * int(it_line['meminfo_total'])
@@ -1701,6 +1699,7 @@ def display_lines(it_line, i, agregates = {}):
         loadavg_runq_plit = it_line['loadavg_runq_plit']
         loadavg_runq      = float(loadavg_runq_plit.split("/")[0])
         loadavg_plit      = float(loadavg_runq_plit.split("/")[1])
+        stat_blocked      = float(it_line['stat_blocked'])
             
         if not opts.live:
             agregates['total_load_load1'].append(loadavg_load1)
@@ -1708,12 +1707,14 @@ def display_lines(it_line, i, agregates = {}):
             agregates['total_load_load15'].append(loadavg_load15)
             agregates['total_load_runq'].append(loadavg_runq)
             agregates['total_load_plit'].append(loadavg_plit)
+            agregates['total_load_blocked'].append(stat_blocked)
 
-        it_line['total_load_load1']  = '{:>7}'.format(format_bytes(loadavg_load1))
-        it_line['total_load_load5']  = '{:>7}'.format(format_bytes(loadavg_load5))
-        it_line['total_load_load15'] = '{:>7}'.format(format_bytes(loadavg_load15))
-        it_line['total_load_runq']   = '{:>7}'.format(format_bytes(loadavg_runq))
-        it_line['total_load_plit']   = '{:>7}'.format(format_bytes(loadavg_plit))
+        it_line['total_load_load1']   = '{:>7}'.format(format_bytes(loadavg_load1))
+        it_line['total_load_load5']   = '{:>7}'.format(format_bytes(loadavg_load5))
+        it_line['total_load_load15']  = '{:>7}'.format(format_bytes(loadavg_load15))
+        it_line['total_load_runq']    = '{:>7}'.format(format_bytes(loadavg_runq))
+        it_line['total_load_plit']    = '{:>7}'.format(format_bytes(loadavg_plit))
+        it_line['total_load_blocked'] = '{:>7}'.format(format_bytes(stat_blocked))
 
     if "tcpofo" in opts.picks:
         netstat_OfoPruned    = float(it_line['netstat_OfoPruned'])
@@ -1978,7 +1979,7 @@ def main():
     global vi_widths
 
     vi = OrderedDict()
-    vi['cpu']     = ['user', 'sys', 'wait', 'hirq', 'sirq', 'util']
+    vi['cpu']     = ['user', 'sys', 'wait', 'hirq', 'sirq', 'util', 'idle', 'steal', 'guest']
     vi['mem']     = ['free', 'used', 'buff', 'cach', 'total', 'util', 'avail']
     vi['swap']    = ['swpin', 'swpout', 'total', 'util']
     vi['tcp']     = ['active','pasive','iseg','outseg','EstRes','AtmpFa','CurrEs','retran']
@@ -1987,7 +1988,7 @@ def main():
     vi['io']      = ['rrqms', 'wrqms', '%rrqm', '%wrqm', 'rs', 'ws', 'rsecs', 'wsecs', 'rqsize', 'rarqsz', 'warqsz', 'qusize', 'await', 'rawait', 'wawait', 'svctm', 'util']
     vi['pcsw']    = ['cswch', 'proc']
     vi['tcpx']    = ['recvq', 'sendq', 'est', 'twait', 'fwait1', 'fwait2', 'lisq', 'lising', 'lisove', 'cnest', 'ndrop', 'edrop', 'rdrop', 'pdrop', 'kdrop']
-    vi['load']    = ['load1', 'load5', 'load15', 'runq', 'plit']
+    vi['load']    = ['load1', 'load5', 'load15', 'runq', 'plit', 'blocked']
     vi['tcpofo']  = ['OfoPruned', 'DSACKOfoSent', 'DSACKOfoRecv', 'OFOQueue', 'OFODrop', 'OFOMerge']
     vi['retran']  = ['RetransSegs', 'FastRetrans', 'LossProbes', 'RTORetrans', 'RTORatio', 'LostRetransmit', 'ForwardRetrans', 'SlowStartRetrans', 'RetransFail', 'SynRetrans']
     vi['tcpdrop'] = ['LockDroppedIcmps', 'ListenDrops', 'ListenOverflows', 'PrequeueDropped', 'BacklogDrop', 'MinTTLDrop', 'DeferAcceptDrop', 'ReqQFullDrop', 'OFODrop']
