@@ -1,14 +1,15 @@
-# SRESAR使用手册
+## SRESAR使用手册
 
-# 目录
+[English](README.md) | 中文
+
+## 目录
 
 * [一、工具介绍](#工具介绍)
 * [二、工具特点](#工具特点)
 * [三、工具安装](#工具安装)
-    * [3.1、预提供安装包](#预提供安装包)
-    * [3.2、rpm包打包方法](#rpm包打包方法)
-    * [3.3、deb包打包方法](#deb包打包方法)
-    * [3.4、源代码编译安装](#源代码编译安装)
+    * [3.1、rpm包打包方法](#rpm包打包方法)
+    * [3.2、deb包打包方法](#deb包打包方法)
+    * [3.3、源代码编译安装](#源代码编译安装)
 * [四、整机指标](#整机指标)
     * [4.1、整机参数说明](#整机参数说明) 
     * [4.2、整机视图说明](#整机视图说明)
@@ -79,13 +80,15 @@
 * [十五、增强查询器ssar+](#增强查询器ssar+)
 * [十六、技术交流](#技术交流)
 
-<a name="工具介绍"/>
-# 一、工具介绍
+<a name="工具介绍"></a>
+
+## 一、工具介绍
 
 　　ssar(Site Reliability Engineers System Activity Reporter)是系统活动报告sar工具家族中崭新的一个。在几乎涵盖了传统sar工具的大部分主要功能之外，它还扩展了更多的整机指标；新增了进程级指标和特色的load指标。
 
-<a name="工具特点"/>
-# 二、工具特点
+<a name="工具特点"></a>
+
+## 二、工具特点
 
 　　与其他sar家族工具相比，ssar有如下几个特色的地方：
 
@@ -99,26 +102,16 @@
 
 　　当然了，采集更多的数据，必然占用更多的磁盘存储空间。近20年来，随着存储技术的发展，在同样成本结构的前提下，磁盘空间增长了1000倍。基于这样背景，适当占用一定的存储空间，采集更多数据指标是划算的。
 
-<a name="工具安装"/>
-# 三、工具安装
+<a name="工具安装"></a>
+
+## 三、工具安装
 
 　　工具的安装，有如下几种方法:
 
-<a name="预提供安装包"/>
-## 3.1、预提供安装包
+<a name="预提供安装包"></a>
 
-　　提供了几个常用安装包供直接使用。
-
-```bash
-$ git clone https://gitee.com/anolis/tracing-ssar.git
-$ ls ssar/package/
-ssar-1.0.2-1.an8.x86_64.rpm                 # 适用于 anolisos 和 centos8
-ssar-1.0.2-1.el7.x86_64.rpm                 # 适用于 centos7
-ssar_1.0.2-1_amd64.deb                      # 适用于 ubuntu
-```
-
-<a name="rpm包打包方法"/>
-## 3.2、rpm包打包方法
+<a name="rpm包打包方法"></a>
+### 3.1、rpm包打包方法
 
 　　rpm包的打包方法如下，本方法适用于AnolisOS and CentOS等操作系统环境。
 
@@ -126,19 +119,19 @@ ssar_1.0.2-1_amd64.deb                      # 适用于 ubuntu
 $ yum install zlib-devel gcc-c++
 $ yum install rpm-build rpmdevtools git
 $ rpmdev-setuptree
-$ cd ~/
-$ git clone https://gitee.com/anolis/tracing-ssar.git
-$ cp -fr ~/ssar/* ~/rpmbuild/SOURCES/
-$ cd ~/rpmbuild/
-$ cp SOURCES/spec/ssar.spec SPECS/
-$ rpmbuild -bb SPECS/ssar.spec 
-$ cd RPMS/x86_64/
-$ sudo rpm -ivh ssar-1.0.2-1.an8.x86_64.rpm
+$ cd /tmp/
+$ git clone https://gitee.com/anolis/ssar.git
+$ tar -zcvf ~/rpmbuild/SOURCES/ssar-$(cat ssar/spec/ssar.spec |grep Version |awk '{print $2}').tar.gz ssar
+$ cp ssar/spec/ssar.spec ~/rpmbuild/SPECS/
+$ rpmbuild -bb ~/rpmbuild/SPECS/ssar.spec
+$ cd ~/rpmbuild/RPMS/x86_64/
+$ sudo rpm -ivh $(ls)
 $ sudo rpm -e ssar                                             # remove package
 ```
 
-<a name="deb包打包方法"/>
-## 3.3、deb包打包方法
+<a name="deb包打包方法"></a>
+
+### 3.2、deb包打包方法
 
 　　deb包的打包方法如下，本方法适用于Ubuntu等操作系统环境。
 
@@ -146,32 +139,35 @@ $ sudo rpm -e ssar                                             # remove package
 $ apt-get update
 $ apt install zlib1g-dev git
 $ cd ~/
-$ git clone https://gitee.com/anolis/tracing-ssar.git
+$ git clone https://gitee.com/anolis/ssar.git
 $ cd ssar/debian
 $ ./build.sh
-$ dpkg -i ssar_1.0.2-1_amd64.deb
+$ dpkg -i ssar_*_amd64.deb
 $ dpkg -r ssar                                                 # remove package
 ```
 
-<a name="源代码编译安装"/>
-## 3.4、源代码编译安装
+<a name="源代码编译安装"></a>
+
+### 3.3、源代码编译安装
 
 　　源代码安装方法。
 
 ```bash
 $ yum install zlib-devel                                       # ubuntu need zlib1g-dev
 $ cd ~/
-$ git clone https://gitee.com/anolis/tracing-ssar.git
+$ git clone https://gitee.com/anolis/ssar.git
 $ make 
 $ sudo make install
 $ sudo make uninstall                                          # remove                                   
 ```
 
-<a name="整机指标"/>
-# 四、整机指标
+<a name="整机指标"></a>
 
-<a name="整机参数说明"/>
-## 4.1、整机参数说明
+## 四、整机指标
+
+<a name="整机参数说明"></a>
+
+### 4.1、整机参数说明
 
 　　运行ssar --help即可获取整机指标帮助信息，下面以实例形式分别介绍。
 
@@ -193,8 +189,9 @@ $ ssar -H                       # 选中则不显示指标的标题信息
 $ ssar -P                       # 选中则不显示- * < > =等非数字指标
 $ ssar --api                    # 选中则以json格式输出信息
 ```
-<a name="整机视图说明"/>
-## 4.2、整机视图说明
+<a name="整机视图说明"></a>
+
+### 4.2、整机视图说明
 
 　　与传统sar工具类似，ssar工具也针对用户使用的一组指标提炼成视图（view）。目前已经提供的视图有如下几个。
 
@@ -239,8 +236,9 @@ collect_datetime        user/s   system/s   iowait/s  softirq/s  memfree  anonpa
 
 * 如果显示*，则表示当前采集时间和前一个采集时间的周期内，操作系统发生了重启行为。
 
-<a name="整机预定义指标说明"/>
-## 4.3、整机预定义指标说明
+<a name="整机预定义指标说明"></a>
+
+### 4.3、整机预定义指标说明
 
 　　如果已有的视图不能很好的满足需求，我们可以自己组合既有指标(indicator)进行输出。
 
@@ -251,8 +249,9 @@ $ ssar --cpu -O shmem,memfree   # 在cpu视图的指标基础上，追加输出s
 
 　　这里要区分小o和大O，小o表示单独输出，大O表示追加输出。具体的指标的配置，请参考《通用查询器整机指标配置》小节。
 
-<a name="整机自定义指标说明"/>
-## 4.4、整机自定义指标说明
+<a name="整机自定义指标说明"></a>
+
+### 4.4、整机自定义指标说明
 
 　　如果有些指标本工具没有定义也没有关系，我们可以直接在命令行中获取指标。自定义指标同样适用小o和大O选项输出。
 
@@ -301,8 +300,9 @@ $ ssar -o 'metric=d|cfile=stat|line=2-17|column=5|alias=idle_{line};'           
 
 * position=a，有些情况下line_begin指定的行首关键字所在行数，在不同时间频繁变化，需要使用position来动态判断行数，此时值设置为a（auto），默认不指定值为f，将只判断一次所在行数。
 
-<a name="整机实时模式说明"/>
-## 4.5、整机实时模式说明
+<a name="整机实时模式说明"></a>
+
+### 4.5、整机实时模式说明
 
 　　与其他sar工具一样，ssar也支持实时模式。实时模式的开始时刻永远是当前时刻，我们用-f选项值前面的加号表示开启实时模式。
 
@@ -315,17 +315,19 @@ $ ssar -f +10 -i 1s             # -i 1s表示实时模式情况下，采集输�
 　　有些场景不方便直接部署和安装ssar工具，可以将ssar命令直接分发到相关机器上，此时可以直接在live模式下运行ssar命令：
 
 ```bash
-$ which ssar                    # 获取到ssar命令所处路径/usr/local/bin/ssar，拷贝到目标机
+$ which ssar                    # 获取到ssar命令所处路径/usr/bin/ssar，拷贝到目标机
 $ ./ssar -f +10 -i 1s -o 'metric=d|src_path=/proc/net/snmp|line=8|column=13|alias=retranssegs'  # 在目标机执行
 ```
 
 　　此时需要使用src_path=/proc/net/snmp替代cfile直接指定数据源所处的绝对路径即可。
 
-<a name="多进程指标"/>
-# 五、多进程指标
+<a name="多进程指标"></a>
 
-<a name="多进程参数说明"/>
-## 5.1、多进程参数说明
+## 五、多进程指标
+
+<a name="多进程参数说明"></a>
+
+### 5.1、多进程参数说明
 
 　　多进程指标以procs为子命令，运行ssar procs --help即可获取帮助信息，下面以实例形式分别介绍。
 
@@ -343,8 +345,9 @@ $ ssar procs -l 100                   # 超过100条信息，仅显示100条结�
 $ ssar procs --api                    # 选中则以json格式输出信息
 ```
 
-<a name="多进程视图说明"/>
-## 5.2、多进程视图说明
+<a name="多进程视图说明"></a>
+
+### 5.2、多进程视图说明
 
 　　ssar工具多进程也针对用户使用提供了几个常用的视图（view）。目前已经提供的视图有如下几个。
 
@@ -369,8 +372,9 @@ $ ssar procs --cpu
   52713       1    2T12:14:47    1T08:44:22    1T03:30:25     1.7     1.0     0.7       1       0 S service 
 ```
 
-<a name="多进程指标组合"/>
-## 5.3、多进程指标组合
+<a name="多进程指标组合"></a>
+
+### 5.3、多进程指标组合
 
 　　如果已有的视图不能很好的满足需求，我们也可以自己组合既有指标(indicator)进行输出。
 
@@ -381,8 +385,9 @@ $ ssar procs --cpu -O cmdline         # 在cpu视图的指标基础上，追加�
 
 　　这里同样要区分小o和大O，小o表示单独输出，大O表示追加输出。
 
-<a name="多进程指标说明"/>
-## 5.4、多进程指标说明
+<a name="多进程指标说明"></a>
+
+### 5.4、多进程指标说明
 
 　　多进程指标目前有如下50个，具体如下表：
 
@@ -750,11 +755,13 @@ $ ssar procs --cpu -O cmdline         # 在cpu视图的指标基础上，追加�
     </tbody>
 </table>
 
-<a name="单进程指标"/>
-# 六、单进程指标
+<a name="单进程指标"></a>
 
-<a name="单进程参数说明"/>
-## 6.1、单进程参数说明
+## 六、单进程指标
+
+<a name="单进程参数说明"></a>
+
+### 6.1、单进程参数说明
 
 　　单进程指标以proc为子命令，运行ssar proc --help即可获取帮助信息，下面以实例形式分别介绍。
 
@@ -773,8 +780,9 @@ $ ssar proc -p 1 -P                       # 选中则不显示- * < > =等非数
 $ ssar proc -p 1 --api                    # 选中则以json格式输出信息
 ```
 
-<a name="单进程视图说明"/>
-## 6.2、单进程视图说明
+<a name="单进程视图说明"></a>
+
+### 6.2、单进程视图说明
 
 　　ssar工具单进程也针对用户使用提供了几个常用的视图（view）。目前已经提供的视图有如下几个。
 
@@ -819,8 +827,9 @@ collect_datetime            etime       cputime     cpu_utime     cpu_stime    p
 
 * 如果显示>，则表示进程前一个采集时间和从当前采集时间的周期内结束的。
 
-<a name="单进程指标组合"/>
-## 6.3、单进程指标组合
+<a name="单进程指标组合"></a>
+
+### 6.3、单进程指标组合
 
 　　如果已有的视图不能很好的满足需求，我们也可以自己组合既有指标(indicator)进行输出。
 
@@ -831,16 +840,19 @@ $ ssar proc -p 1 --cpu -O cmdline         # 在cpu视图的指标基础上，追
 
 　　这里同样要区分小o和大O，小o表示单独输出，大O表示追加输出。
 
-<a name="单进程指标说明"/>
-## 6.4、单进程指标说明
+<a name="单进程指标说明"></a>
+
+### 6.4、单进程指标说明
 
 　　单进程指标与多进程指标大体相同，参见3.4小结表格。区别是单进程指标多了一个collect_datetime指标。
 
-<a name="整机load指标"/>
-# 七、整机load指标
+<a name="整机load指标"></a>
 
-<a name="整机load参数说明"/>
-## 7.1、整机load参数说明
+## 七、整机load指标
+
+<a name="整机load参数说明"></a>
+
+### 7.1、整机load参数说明
 
 　　整机load指标以load5s为子命令，运行ssar load5s --help即可获取帮助信息，下面以实例形式分别介绍
 
@@ -859,8 +871,9 @@ $ ssar load5s -H                       # 选中则不显示指标的标题信息
 $ ssar load5s --api                    # 选中则以json格式输出信息
 ```
 
-<a name="整机load指标说明"/>
-## 7.2、整机load指标说明
+<a name="整机load指标说明"></a>
+
+### 7.2、整机load指标说明
 
 　　整机load指标包含如下信息。  
 
@@ -909,8 +922,9 @@ collect_datetime       threads    load1   runq load5s stype sstate zstate    act
 
 * 字段actd：如果触发采集，此值为成功采集的D状态线程的个数；否则值为-。
 
-<a name="特异指标load5s深入说明"/>
-## 7.3、特异指标load5s深入说明
+<a name="特异指标load5s深入说明"></a>
+
+### 7.3、特异指标load5s深入说明
 
 　　从字面意思来说，很多资料解释load1就是1分钟的load均值，很多资料解释load5就是5分钟的load均值，很多资料解释load15就是15分钟的load均值。那么load5s按此逻辑理解，可以初步解释为5秒钟的load均值。
 
@@ -920,11 +934,13 @@ collect_datetime       threads    load1   runq load5s stype sstate zstate    act
 
 　　最后说一下ssar load5s没有显示load5和load15这2个指标。上面说了active值（即load5s）是一个刻度值，只能反映那5秒钟的机器压力情况。历史上，linux通过load1、load5和load15来把过去若干分钟内的active值通过适当的加权后，在当前时刻展示出来。可是一旦有了各种sar工具之后，我们就已经记录了过去各个时间点的load1、load5和load15值了，至少我们已经不用在通过load5和load15来观察5分钟或15分钟前的情况了，因为load1的历史数据都已经更加清晰的表达了。如今有了load5s值之后，就更没有load5和load15存在的必要性了。
 
-<a name="Load详情指标"/>
-# 八、Load详情指标
+<a name="Load详情指标"></a>
 
-<a name="Load详情参数说明"/>
-## 8.1、Load详情参数说明
+## 八、Load详情指标
+
+<a name="Load详情参数说明"></a>
+
+### 8.1、Load详情参数说明
 
 　　整机load指标以load2p为子命令，运行ssar load2p --help即可获取帮助信息，下面以实例形式分别介绍。
 
@@ -941,8 +957,9 @@ $ ssar load2p -c 2020-10-07T07:45:25 --loadd --stack # 同时显示loadd和stack
 
 　　特别说明：-c选项的时间参数值，只能是上文中ssar load5s -z命令输出结果中的collect_datetime值选择，其他collect_datetime值作为-c选项参数无法显示结果。
 
-<a name="Load详情聚合指标说明"/>
-## 8.2、Load详情聚合指标说明
+<a name="Load详情聚合指标说明"></a>
+
+### 8.2、Load详情聚合指标说明
 
 　　详情聚合视图一共4个loadr、loadd、psr和stackinfo，下面分别介绍：
 
@@ -995,8 +1012,9 @@ $ ssar load2p -c 2021-08-20T14:41:49 --stackinfo
        3 percent 300403 call_rwsem_down_write_failed     call_rwsem_down_write_failed,vm_mmap_pgoff,SyS_mmap_pgoff,SyS_mmap,system_call_fastpath
 ```
 
-<a name="Load详情详细指标说明"/>
-## 8.3、Load详情详细指标说明
+<a name="Load详情详细指标说明"></a>
+
+### 8.3、Load详情详细指标说明
 
 　　各详情详细指标视图一共2个loadrd和stack，上面4个聚合视图主要由详情指标聚合而成。下面分别介绍：
 
@@ -1028,11 +1046,13 @@ R  258231  190367  22  120 start
  188437  186035 logagent        3003d4 call_rwsem_down_read_failed      call_rwsem_down_read_failed,__do_page_fault,do_page_fault,page_fault
 ```
 
-<a name="数据采集器sresar"/>
-# 九、数据采集器sresar
+<a name="数据采集器sresar"></a>
 
-<a name="ssar工具简介"/>
-## 9.1、ssar工具简介
+## 九、数据采集器sresar
+
+<a name="ssar工具简介"></a>
+
+### 9.1、ssar工具简介
 
 　　ssar工具整体上分为3部分：数据采集器进程sresar、通用查询器进程ssar、增强查询器进程ssar+和古典查询器tsar2。
 
@@ -1044,8 +1064,9 @@ R  258231  190367  22  120 start
 
 * 进程tsar2是基于python语言的脚本程序，通过调用ssar返回的基础数据实现的兼容tsar的查询功能。
 
-<a name="ssar工作目录"/>
-## 9.2、ssar工作目录
+<a name="ssar工作目录"></a>
+
+### 9.2、ssar工作目录
 
 　　ssar工具的工作目录由配置文件/etc/ssar/ssar.conf中的work_path='/var/log'选项配置，如配置文件被删除，则默认为/var/log/目录生效。work_path路径下是项目根目录sre_proc及其下子目录和文件，具体如下：
 
@@ -1062,8 +1083,9 @@ sre_proc/data/2020093021/20200930215919_stack         # D状态调用栈数据�
 sre_proc/data/2020093021/20200930215900_stat          # 除以上外，皆为整机扩展指标数据文件
 ```
 
-<a name="数据采集器通用选项配置"/>
-## 9.3、数据采集器通用选项配置
+<a name="数据采集器通用选项配置"></a>
+
+### 9.3、数据采集器通用选项配置
 
 　　数据采集器通用选项配置在配置文件ssar.conf的main部分，具体如下：
 
@@ -1082,8 +1104,9 @@ proc_flag=false                                  # 单独关闭进程级信息�
 sys_flag=false                                   # 独关闭整机指标信息采集，缺省打开采集
 ```
 
-<a name="数据采集器load选项配置"/>
-## 9.4、数据采集器load选项配置
+<a name="数据采集器load选项配置"></a>
+
+### 9.4、数据采集器load选项配置
 
 　　数据采集器load选项配置在配置文件ssar.conf的load部分，具体如下：
 
@@ -1096,8 +1119,9 @@ realtime_priority=2                  # load详情采集线程优先级，值域[
 stack_sample_disable=true            # 打开采集所有D状态线程调用栈，默认随机采集
 ```
 
-<a name="数据采集器整机选项配置"/>
-## 9.5、数据采集器整机选项配置
+<a name="数据采集器整机选项配置"></a>
+
+### 9.5、数据采集器整机选项配置
 
 　　数据采集器整机选项配置在配置文件sys.conf的file部分，具体如下：
 
@@ -1147,11 +1171,13 @@ default=[
 
 * gzip选项可以控制当前采集文件是否采用gzip压缩格式存储，默认或者设置为false不开启压缩，设置为true才开启压缩。
 
-<a name="通用查询器ssar"/>
-# 十、通用查询器ssar
+<a name="通用查询器ssar"></a>
 
-<a name="通用查询器整机指标配置"/>
-## 10.1、通用查询器整机指标配置
+## 十、通用查询器ssar
+
+<a name="通用查询器整机指标配置"></a>
+
+### 10.1、通用查询器整机指标配置
 
 　　通用查询器整机指标配置在配置文件sys.conf的indicator部分，具体如下：
 
@@ -1197,8 +1223,9 @@ allocstall    = {cfile="vmstat",line_begin="allocstall_normal",column=2, width=1
 $ ssar -o memfree,allocstall
 ```
 
-<a name="通用查询器整机视图配置"/>
-## 10.2、通用查询器整机视图配置
+<a name="通用查询器整机视图配置"></a>
+
+### 10.2、通用查询器整机视图配置
 
 　　数据采集器整机选项配置在配置文件sys.conf的file部分，具体如下：
 
@@ -1217,8 +1244,9 @@ $ ssar --vm
 $ ssar -o pgscan_direct,allocstall
 ```
 
-<a name="通用查询器整机指标组配置"/>
-## 10.3、通用查询器整机指标组配置
+<a name="通用查询器整机指标组配置"></a>
+
+### 10.3、通用查询器整机指标组配置
 
 　　如果有些指标在不同内核版本的配置略有区别，可以通过定义指标组实现。比如allocstall指标虽然在3.10内核下是取自vmstat文件的allocstall开头的行的第2列，但是在4.9内核下却取自vmstat文件的allocstall_normal开头的行的第2列。那么我们可以通过增加如下指标组实现4.9内核下的特殊配置。
 
@@ -1227,8 +1255,9 @@ $ ssar -o pgscan_direct,allocstall
 allocstall    = {cfile="vmstat",line_begin="allocstall_normal",column=2, width=10, metric="d"}
 ```
 
-<a name="通用查询器整机指标组作用优先级"/>
-## 10.4、通用查询器整机指标组作用优先级
+<a name="通用查询器整机指标组作用优先级"></a>
+
+### 10.4、通用查询器整机指标组作用优先级
 
 　　如果有一台机器的内核release信息是4.9.151-015.x86_64（通过uname -r获取），同时有如下几个指标组，那么指标组针对这个内核版本的作用优先级依次为：
 
@@ -1241,8 +1270,9 @@ allocstall    = {cfile="vmstat",line_begin="allocstall_normal",column=2, width=1
 
 　　比如我们需要解析allocstall这个指标，当在[4.9.151-015.]这个这个指标组中查找到allocstall后，就其他指标组的allocstall指标定义就不生效了。如果在所有指标组中都没有找到allocstall指标的定义，将抛出指标未定义异常。
 
-<a name="古典查询器tsar2"/>
-# 十一、古典查询器tsar2
+<a name="古典查询器tsar2"></a>
+
+## 十一、古典查询器tsar2
 
 　　Tsar是业界一款非常经典的sar类型工具，很多同学在日常调查问题中都会经常用到。Tsar2在选项参数和输出格式方面和tsar基本保持一致和兼容。相比较而言，Tsar2有如下3方面的特点：
 
@@ -1252,22 +1282,26 @@ allocstall    = {cfile="vmstat",line_begin="allocstall_normal",column=2, width=1
 
 * 学习和使用Tsar2，有助于增加对Tsar工具的理解。Tsar2选择python语言封装，通过查看tsar2源码可以方便看到各个指标的计算逻辑，也同时增加了对tsar的深入理解。
 
-<a name="时间范围类选项"/>
-## 11.1、时间范围类选项
+<a name="时间范围类选项"></a>
+
+### 11.1、时间范围类选项
 
 　　Tsar的时间范围类选项一共有4个，分别是--date、--ndays、--watch和--live，这4个选项在内在逻辑上是互斥的，就是说同一个tsar命令里，只有一个能生效。Tsar2为了避免这种混乱，在用户使用时，就强制用户只能选择其中一个选项使用。
 
-<a name="date选项"/>
-### 11.1.1、date选项
+<a name="date选项"></a>
+
+#### 11.1.1、date选项
 
 　　date选项，简写-d，用于指定自然日时间范围，例如--date 20210322。指定后，开始时间为当日0点，结束时间为当日23点59分。如果指定日期为当前日，则结束时间为命令执行时刻。
 
-<a name="ndays选项"/>
+<a name="ndays选项"></a>
+
 #### 11.1.2、ndays选项
 
 　　ndays选项，简写-n，用于指定以当前时刻为基准的n天前时间范围，时间跨度固定为24小时的整倍数。例如--ndays 3，表示开始时刻是现在时刻的3×24小时前，结束时刻是现在时刻。
 
-<a name="watch选项"/>
+<a name="watch选项"></a>
+
 #### 11.1.3、watch选项
 
 　　watch选项，简写-w，用于指定以当前时刻到n分种前的时间范围。例如--watch 60，表示从60分钟前到当前时刻的时间范围，注意这里仅仅表示时间跨度是60分钟，具体多少条数据显示，还需要结合时间间隔选项。
@@ -1285,22 +1319,26 @@ tsar2 -f 2021073115                  # 指定结束时间
 tsar2 -f 20210731                    # 指定结束时间
 ```
 
-<a name="live选项"/>
+<a name="live选项"></a>
+
 #### 11.1.4、live选项
 
 　　live选项，简写-l，用于指定从当前时刻开始到未来时刻的时间范围，直到主动终止进程为止。
 
-<a name="时间间隔选项interval"/>
-## 11.2、时间间隔选项interval
+<a name="时间间隔选项interval"></a>
+
+### 11.2、时间间隔选项interval
 
 　　interval选项，简写-i，用于指定在指定时间范围内，数据指标显示的时间间隔，不指定时，默认值为5。如果--live选项开启，单位为秒，否则单位为分钟。
 
-<a name="数据指标大类选项"/>
-## 11.3、数据指标大类选项
+<a name="数据指标大类选项"></a>
 
-　　Tsar的指标大类选项一个11个，除partition选项外，其余10个指标大类tsar2均给予支持，并且保持和tsar的完全兼容。下文详述10个指标大类的详细逻辑，所有相关逻辑也可以通过直接阅读/usr/local/bin/tsar2的python源代码获得。这里用到了一些小节《整机自定义指标说明》语法知识，可以先简单了解下这个小节的内容。
+### 11.3、数据指标大类选项
 
-<a name="cpu选项"/>
+　　Tsar的指标大类选项一个11个，除partition选项外，其余10个指标大类tsar2均给予支持，并且保持和tsar的完全兼容。下文详述10个指标大类的详细逻辑，所有相关逻辑也可以通过直接阅读/usr/bin/tsar2的python源代码获得。这里用到了一些小节《整机自定义指标说明》语法知识，可以先简单了解下这个小节的内容。
+
+<a name="cpu选项"></a>
+
 #### 11.3.1、cpu选项
 
 　　cpu选项的数据源主要来自于/proc/stat伪文件，各个指标的计算逻辑如下：
@@ -1329,7 +1367,8 @@ hirq = 100 * stat_irq     / stat_cpu_times
 sirq = 100 * stat_softirq / stat_cpu_times
 util = 100 * (stat_cpu_times -stat_idle -stat_iowait -stat_steal)/stat_cpu_times
 ```
-<a name="mem选项"/>
+<a name="mem选项"></a>
+
 #### 11.3.2、mem选项
 
 　　mem选项的数据源主要来自于/proc/meminfo伪文件，各个指标的计算逻辑如下：
@@ -1354,7 +1393,8 @@ used  = total - free - buff - cach
 util  = 100 * used / total
 ```
 
-<a name="swap选项"/>
+<a name="swap选项"></a>
+
 #### 11.3.3、swap选项
 
 　　swap选项的数据源主要来自于/proc/meminfo和/proc/vmstat伪文件，各个指标的计算逻辑如下：
@@ -1376,7 +1416,8 @@ free   = 1024 * meminfo_swapfree
 util   = 100 - 100 * free / total
 ```
 
-<a name="tcp选项"/>
+<a name="tcp选项"></a>
+
 #### 11.3.4、tcp选项
 
 　　tcp选项的数据源主要来自于/proc/net/snmp伪文件，各个指标的计算逻辑如下：
@@ -1406,7 +1447,8 @@ retranssegs = snmp_retranssegs
 retran      = 100 * retranssegs / outseg
 ```
 
-<a name="udp选项"/>
+<a name="udp选项"></a>
+
 #### 11.3.5、udp选项
 
 　　udp选项的数据源主要来自于/proc/net/snmp伪文件，各个指标的计算逻辑如下：
@@ -1427,7 +1469,8 @@ idmerr = snmp_inerrors
 odgm   = snmp_outdatagrams
 ```
 
-<a name="traffic选项"/>
+<a name="traffic选项"></a>
+
 #### 11.3.6、traffic选项
 
 　　traffic选项的数据源主要来自于/proc/net/dev伪文件，各个指标的计算逻辑如下：
@@ -1464,7 +1507,8 @@ pkterr = sum_dev_rx_errs + sum_dev_tx_errs
 pktdrp = sum_dev_rx_drop + sum_dev_tx_drop
 ```
 
-<a name="io选项"/>
+<a name="io选项"></a>
+
 #### 11.3.7、io选项
 
 　　io选项的数据源主要来自于/proc/diskstats伪文件，各个指标的计算逻辑如下：
@@ -1506,7 +1550,8 @@ sda_svctm  = sda_diskstats_ticks / sda_diskstats_n_ios
 sda_util   = sda_diskstats_ticks / 10
 ```
 
-<a name="pcsw选项"/>
+<a name="pcsw选项"></a>
+
 #### 11.3.8、pcsw选项
 
 　　pcsw选项的数据源主要来自于/proc/stat伪文件，各个指标的计算逻辑如下：
@@ -1523,12 +1568,14 @@ cswch = stat_ctxt
 proc  = stat_processes
 ```
 
-<a name="tcpx选项"/>
+<a name="tcpx选项"></a>
+
 #### 11.3.9、tcpx选项
 
 　　待完善
 
-<a name="load选项"/>
+<a name="load选项"></a>
+
 #### 11.3.10、load选项
 
 load选项的数据源主要来自于/proc/loadavg伪文件，各个指标的计算逻辑如下：
@@ -1550,10 +1597,12 @@ runq   = loadavg_runq_plit.split("/")[0]
 plit   = loadavg_runq_plit.split("/")[1]
 ```
 
-<a name="设备列表选项"/>
-## 11.4、设备列表选项
+<a name="设备列表选项"></a>
 
-<a name="item选项"/>
+### 11.4、设备列表选项
+
+<a name="item选项"></a>
+
 #### 11.4.1、item选项
 
 　　item选项，简写-I，用于指定专门的设备列表。tsar的--item选项仅限于对--io指标大类选项下使用，而且只能指定一个磁盘设备。tsar2在这里有较多的扩展，可以支持--io、--cpu和--traffic三个指标大类的设备指定。而且可以同时指定多个设备。
@@ -1566,15 +1615,18 @@ $ tsar2 --traffic -I eth0,lo      # 可以同时支持物理网卡eth0和虚拟�
 
 　　如果同时指定多个指标大类选项，比如tsar2 --io --cpu --traffic，那么item选项会按io、traffic和cpu的顺序解析item的选项值，并进行合法化校验。
 
-<a name="merge选项"/>
+<a name="merge选项"></a>
+
 #### 11.4.2、merge选项
 
 　　merge选项，简写-m，tsar和tsar2目前都只配合--io指标大类选项使用。用于输出对各个磁盘各指标merge的结果。
 
-<a name="指标类选项"/>
-## 11.5、指标类选项
+<a name="指标类选项"></a>
 
-<a name="spec选项"/>
+### 11.5、指标类选项
+
+<a name="spec选项"></a>
+
 #### 11.5.1、spec选项
 
 　　spec选项，简写-s，用户在每个指标大类既有的指标集合中，摘要显示部分指标。spec选项可以搭配多个指标大类选项同时使用。规则是如果有匹配项，则只显示匹配项，如果没有则显示全部指标项。
@@ -1587,18 +1639,21 @@ Time              util    util    idgm    odgm  noport  idmerr
 23/03/21-11:30    1.14    4.23    0.63    1.40    0.00    0.00
 ```
 
-<a name="detail选项"/>
+<a name="detail选项"></a>
+
 #### 11.5.2、detail选项
 
 　　detail选项，简写-D，tsar和tsar2默认会对指标数值进行K/M/G的转换，使用detail可以还原显示原始数值。
 
-<a name="tsar2创新指标"/>
-# 十二、tsar2创新指标
+<a name="tsar2创新指标"></a>
+
+## 十二、tsar2创新指标
 
 　　tsar2命令在全面兼容tsar的基础上，还创新性的推出一些新的指标和组合。在创新指标的命名上，我们尽量保持了内核原有的名称，这样我们可以免去指标含义的考古过程，直接在搜索引擎上找到共鸣。
 
-<a name="网络tcp扩展指标"/>
-## 12.1、网络tcp扩展指标
+<a name="网络tcp扩展指标"></a>
+
+### 12.1、网络tcp扩展指标
 
 　　tsar在诊断网络问题时，提供了tcp类指标组合，在实际应对生产中网络tcp类问题时还远远不够，我们针对tcp问题的诊断，细化了4组指标组合。
 
@@ -1666,13 +1721,15 @@ Time           RenoFailures SackFailures LossFailures AbortOnMemory AbortFailed 
 12/07/21-13:40         0.00         0.00         0.00          0.00        0.00             0.00                   0.00
 ```
 
-<a name="tsar2中断子命令irqtop"/>
-# 十三、tsar2中断子命令irqtop
+<a name="tsar2中断子命令irqtop"></a>
+
+## 十三、tsar2中断子命令irqtop
 
 　　irqtop子命令tsar2工具中重点解决中断类问题的模块，也同时支持历史数据查询和实时模式查询。
 
-<a name="输出指标项说明"/>
-## 13.1、输出指标项说明
+<a name="输出指标项说明"></a>
+
+### 13.1、输出指标项说明
 
 　　输出指标中，第一行的四个N1表示这4列为Top 1的指标，四个N2列表示这4列为Top 2的指标，以此类推。每组中的irq表示中断号，name表示中断名称，CPU表示这个中断在这个时间区间分配到的CPU核号，如果是多个CPU将逗号隔开，count表示这个中断在这些CPU上产生的中断数之和。
 
@@ -1688,8 +1745,9 @@ Time                count irq CPU name       count irq CPU name       count irq 
 12/07/21-20:41:36    2.0K 096 0   nsa_dma     2.0K 097 0   nsa_dma     1.6K 092 25  virtio6-input.14 
 ```
 
-<a name="输入选项说明"/>
-## 13.2、输入选项说明
+<a name="输入选项说明"></a>
+
+### 13.2、输入选项说明
 
 　　这里对输入选项参数进行说明。
 
@@ -1704,8 +1762,9 @@ $ tsar2 irqtop -C 7,30-32              # 用于只显示指定的CPU核号相关
 $ tsar2 irqtop -S i                    # 用于指定每行结果按照中断号排序，默认每行结果按照count排序；
 ```
 
-<a name="大C选项参数特殊说明"/>
-## 13.3、大C选项参数特殊说明
+<a name="大C选项参数特殊说明"></a>
+
+### 13.3、大C选项参数特殊说明
 
 　　内核中输出中断统计信息的有2个地方，/proc/stat文件中的intr开头的行和/proc/interrupts文件。其中stat中的是每个中断号的中断汇总信息，而interrupts中则对每个中断号细化到了每个CPU的详细中断信息。基于此，为了整体的性能和体验，当我们没有使用大C选项参数，即不需要CPU级别的细化信息时，将从stat中获取数据源；反之，如果我们使用了大C选项参数，工具将从interrupts文件中获取数据源信息。
 
@@ -1720,8 +1779,9 @@ $ tsar2 irqtop -l -C 0-31       # 以32核机器为例，如果希望查看更�
                                 # 需要使用 -C 0-31选项参数；
 ```
 
-<a name="interrupts数据采集"/>
-## 13.4、interrupts数据采集
+<a name="interrupts数据采集"></a>
+
+### 13.4、interrupts数据采集
 
 　　考虑到磁盘存储的成本，interrupts历史数据默认没有开启采集，如果业务需要，可以单独开启。具体方法如下。
 
@@ -1734,8 +1794,9 @@ $ vim /etc/ssar/sys.conf
 $ sudo systemctl restart sresar                          # 修改完配置文件后，重启采集进程生效 
 ```
 
-<a name="tsar2的CPU子命令cputop"/>
-# 十四、tsar2的CPU子命令cputop
+<a name="tsar2的CPU子命令cputop"></a>
+
+## 十四、tsar2的CPU子命令cputop
 
 　　在多核CPU情况下，尽管内核的调度算法会尽量让CPU的使用在各个核中平均分配，但包括中断使用内的各种原因，让然会让各个CPU的CPU使用率并不均衡。tsar2的cputop子命令能很好的显示历史和实时的各个cpu之间的不均衡。
 
@@ -1768,11 +1829,12 @@ Time               value cpu idct  value cpu idct  value cpu idct
 
 　　我们还可以选择按照CPU空闲的idle进行排序，-r选项选中则按照升序排序。大I选项参数指定参与排序的cpu核号列表。
 
-<a name="增强查询器ssar+"/>
-# 十五、增强查询器ssar+
+<a name="增强查询器ssar+"></a>
+
+## 十五、增强查询器ssar+
 
 　　功能规划中
 
-# 十六、技术交流
+## 十六、技术交流
 
 　　ssar工具还在不断开发和优化过程中，如果大家觉得工具使用有任何疑问、对工具功能有新的建议，或者想贡献代码给ssar工具，请加群交流和反馈信息。钉钉群号：33304007。
