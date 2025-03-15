@@ -6,7 +6,7 @@
 %define work_path      /var/log
 
 Name:                 ssar
-Version:              1.0.4
+Version:              1.0.5
 Release:              %{?anolis_release}%{?dist}
 Url:                  https://gitee.com/anolis/ssar
 Summary:              ssar for SRE
@@ -158,6 +158,8 @@ fi
 %postun
 
 %changelog
+* Mon Feb 24 2025 MilesWen <mileswen@linux.alibaba.com> - 1.0.5-1
+- enable collection of sockstat data.
 * Mon Mar 13 2023 MilesWen <mileswen@linux.alibaba.com> - 1.0.4-1
 - Fix some segfault.
 * Wed Jul 13 2022 MilesWen <mileswen@linux.alibaba.com> - 1.0.3-1

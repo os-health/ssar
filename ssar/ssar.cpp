@@ -52,7 +52,7 @@ using namespace cpptoml;
 using namespace std;
 using json = nlohmann::json;
 
-#define VERSION "1.0.4"
+#define VERSION "1.0.5"
 #define AREA_LINE 20
 const string sresar_suffix = "sresar25";
 const string cmdline_suffix = "cmdline";

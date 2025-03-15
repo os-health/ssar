@@ -70,7 +70,7 @@ def getcpunr():
     return cpunr
 
 def avg(it_list):
-    return sum(it_list)/len(it_list)
+    return sum(it_list)/len(it_list) if len(it_list) else 0
 
 def format_bytes(s):
     size = float(s)
@@ -228,6 +228,39 @@ def get_irq_cpus():
                 ret[l1] = it_cpus
     return ret
 
+def kernel_version(a, b, c):
+    return (a << 16) + (b << 8) + (255 if c > 255 else c)
+
+def check_anolis_os():
+    anolis_ids = {"alios", "alinux", "anolis"}
+
+    try:
+        with open('/etc/os-release', 'r') as file:
+            for line in file:
+                if line.startswith("ID="):
+                    current_id = line.strip().split("=")[1].strip('"')
+                    if current_id in anolis_ids:
+                        return True
+    except FileNotFoundError:
+        print("Unable to find '/etc/os-release'.")
+        return False
+    except Exception as e:
+        print("An error occurred: %s" % e)
+        return False
+
+    return False
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 #######################################################################################
 #                                                                                     #
 #                                    init part                                        #
@@ -354,6 +387,9 @@ def init_options():
     if "reverse" not in opts:
         opts.reverse = False
 
+    if "anolis" not in opts or opts.anolis == None:
+        opts.anolis = check_anolis_os()
+
     check_option_exclusive()
 
     if not opts.field:
@@ -436,6 +472,13 @@ def init_sys():
     opts.formated_type    = {}
     opts.item_type        = None           # such as io / traffic / cpu
     opts.item_mode        = {}             # such as {'io': 'every'}, avg / sum / max / min, specific
+
+    if opts.anolis and opts.linux_version_code >= kernel_version(4, 9, 168):
+        vi['io'].extend(vi_addon['io']['d2c'])
+    if opts.linux_version_code >= kernel_version(4, 19, 0):
+        vi['io'].extend(vi_addon['io']['discard'])
+    if opts.linux_version_code >= kernel_version(5, 5, 0):
+        vi['io'].extend(vi_addon['io']['flush'])
 
     indicators    = []
     for it_view in vi:
@@ -641,9 +684,15 @@ def init_cputop():
         opts.items = range(0, opts.cpunr)
 
 def init_env():
-    uts_releases  = os.uname()[2].split(".", 2)
-    opts.kversion = uts_releases[0] + "." + uts_releases[1]
+    uts_releases  = os.uname()[2].split("-", 1)[0].split(".", 3)
+    opts.kversion = uts_releases[0] + "." + uts_releases[1] + "." + uts_releases[2]
+    version    = int(uts_releases[0])
+    patchlevel = int(uts_releases[1])
+    sublevel   = int(uts_releases[2])
+    if sublevel > 255:
+        sublevel = 255
 
+    opts.linux_version_code = (version << 16) + (patchlevel << 8) + sublevel
 
 #######################################################################################
 #                                                                                     #
@@ -709,15 +758,15 @@ def display_cputop_lines(it_line, i):
         it_stat_guest_nice = float(it_line[str(it_device) + '_11'])
 
         it_stat_cpu_times = it_stat_user +it_stat_nice +it_stat_system +it_stat_idle +it_stat_iowait +it_stat_irq +it_stat_softirq +it_stat_steal
-        it_cpu_user  = 100 * it_stat_user    / it_stat_cpu_times
-        it_cpu_sys   = 100 * it_stat_system  / it_stat_cpu_times
-        it_cpu_wait  = 100 * it_stat_iowait  / it_stat_cpu_times
-        it_cpu_hirq  = 100 * it_stat_irq     / it_stat_cpu_times
-        it_cpu_sirq  = 100 * it_stat_softirq / it_stat_cpu_times
-        it_cpu_idle  = 100 * it_stat_idle    / it_stat_cpu_times
-        it_cpu_steal = 100 * it_stat_steal   / it_stat_cpu_times
-        it_cpu_guest = 100 * it_stat_guest   / it_stat_cpu_times
-        it_cpu_util  = 100 * (it_stat_cpu_times - it_stat_idle - it_stat_iowait - it_stat_steal) / it_stat_cpu_times
+        it_cpu_user  = 100 * it_stat_user    / it_stat_cpu_times if it_stat_cpu_times else 0
+        it_cpu_sys   = 100 * it_stat_system  / it_stat_cpu_times if it_stat_cpu_times else 0
+        it_cpu_wait  = 100 * it_stat_iowait  / it_stat_cpu_times if it_stat_cpu_times else 0
+        it_cpu_hirq  = 100 * it_stat_irq     / it_stat_cpu_times if it_stat_cpu_times else 0
+        it_cpu_sirq  = 100 * it_stat_softirq / it_stat_cpu_times if it_stat_cpu_times else 0
+        it_cpu_idle  = 100 * it_stat_idle    / it_stat_cpu_times if it_stat_cpu_times else 0
+        it_cpu_steal = 100 * it_stat_steal   / it_stat_cpu_times if it_stat_cpu_times else 0
+        it_cpu_guest = 100 * it_stat_guest   / it_stat_cpu_times if it_stat_cpu_times else 0
+        it_cpu_util  = 100 * (it_stat_cpu_times - it_stat_idle - it_stat_iowait - it_stat_steal) / it_stat_cpu_times if it_stat_cpu_times else 0
 
         if opts.sort == "user":
             new_line[str(it_device) + "_" + opts.sort] = it_cpu_user
@@ -1120,6 +1169,27 @@ def concatenate_ssar():
                 scmd += "metric=d:cfile=diskstats:line_begin={item}:column=11:alias={item}_diskstats_wr_ticks;".format(item=it_device)
                 scmd += "metric=d:cfile=diskstats:line_begin={item}:column=13:alias={item}_diskstats_ticks;".format(item=it_device)
                 scmd += "metric=d:cfile=diskstats:line_begin={item}:column=14:alias={item}_diskstats_aveq;".format(item=it_device)
+                column_rd_d2c = 15
+                column_wr_d2c = 16
+                column_di_d2c = 17
+                if opts.linux_version_code >= kernel_version(4, 19, 0):
+                    scmd += "metric=d:cfile=diskstats:line_begin={item}:column=15:alias={item}_diskstats_di_ios;".format(item=it_device)
+                    scmd += "metric=d:cfile=diskstats:line_begin={item}:column=16:alias={item}_diskstats_di_merges;".format(item=it_device)
+                    scmd += "metric=d:cfile=diskstats:line_begin={item}:column=17:alias={item}_diskstats_di_sectors;".format(item=it_device)
+                    scmd += "metric=d:cfile=diskstats:line_begin={item}:column=18:alias={item}_diskstats_di_ticks;".format(item=it_device)
+                    column_rd_d2c = 19
+                    column_wr_d2c = 20
+                    column_di_d2c = 21
+                if opts.linux_version_code >= kernel_version(5, 5, 0):
+                    scmd += "metric=d:cfile=diskstats:line_begin={item}:column=19:alias={item}_diskstats_fl_ios;".format(item=it_device)
+                    scmd += "metric=d:cfile=diskstats:line_begin={item}:column=20:alias={item}_diskstats_fl_ticks;".format(item=it_device)
+                    column_rd_d2c = 21
+                    column_wr_d2c = 22
+                    column_di_d2c = 23
+                if opts.anolis and opts.linux_version_code >= kernel_version(4, 9, 168):
+                    scmd += "metric=d:cfile=diskstats:line_begin={item}:column={col}:alias={item}_diskstats_rd_d2c;".format(item=it_device, col=column_rd_d2c)
+                    scmd += "metric=d:cfile=diskstats:line_begin={item}:column={col}:alias={item}_diskstats_wr_d2c;".format(item=it_device, col=column_wr_d2c)
+                    scmd += "metric=d:cfile=diskstats:line_begin={item}:column={col}:alias={item}_diskstats_di_d2c;".format(item=it_device, col=column_di_d2c)
         elif it_view == "pcsw":
             scmd += "metric=d|cfile=stat|line_begin=ctxt|column=2|alias=stat_ctxt;"
             scmd += "metric=d|cfile=stat|line_begin=processes|column=2|alias=stat_processes;"
@@ -1338,15 +1408,15 @@ def display_lines(it_line, i, agregates = {}):
             it_stat_guest_nice = float(it_line[it_device+'_stat_11'])
 
             it_stat_cpu_times = it_stat_user +it_stat_nice +it_stat_system +it_stat_idle +it_stat_iowait +it_stat_irq +it_stat_softirq +it_stat_steal
-            it_cpu_user  = 100 * it_stat_user    / it_stat_cpu_times
-            it_cpu_sys   = 100 * it_stat_system  / it_stat_cpu_times
-            it_cpu_wait  = 100 * it_stat_iowait  / it_stat_cpu_times
-            it_cpu_hirq  = 100 * it_stat_irq     / it_stat_cpu_times
-            it_cpu_sirq  = 100 * it_stat_softirq / it_stat_cpu_times
-            it_cpu_idle  = 100 * it_stat_idle    / it_stat_cpu_times
-            it_cpu_steal = 100 * it_stat_steal   / it_stat_cpu_times
-            it_cpu_guest = 100 * it_stat_guest   / it_stat_cpu_times
-            it_cpu_util  = 100 * (it_stat_cpu_times - it_stat_idle - it_stat_iowait - it_stat_steal) / it_stat_cpu_times
+            it_cpu_user  = 100 * it_stat_user    / it_stat_cpu_times if it_stat_cpu_times else 0
+            it_cpu_sys   = 100 * it_stat_system  / it_stat_cpu_times if it_stat_cpu_times else 0
+            it_cpu_wait  = 100 * it_stat_iowait  / it_stat_cpu_times if it_stat_cpu_times else 0
+            it_cpu_hirq  = 100 * it_stat_irq     / it_stat_cpu_times if it_stat_cpu_times else 0
+            it_cpu_sirq  = 100 * it_stat_softirq / it_stat_cpu_times if it_stat_cpu_times else 0
+            it_cpu_idle  = 100 * it_stat_idle    / it_stat_cpu_times if it_stat_cpu_times else 0
+            it_cpu_steal = 100 * it_stat_steal   / it_stat_cpu_times if it_stat_cpu_times else 0
+            it_cpu_guest = 100 * it_stat_guest   / it_stat_cpu_times if it_stat_cpu_times else 0
+            it_cpu_util  = 100 * (it_stat_cpu_times - it_stat_idle - it_stat_iowait - it_stat_steal) / it_stat_cpu_times if it_stat_cpu_times else 0
 
             if not opts.live:
                 agregates[it_device+'_cpu_user'].append(it_cpu_user)
@@ -1522,7 +1592,6 @@ def display_lines(it_line, i, agregates = {}):
 
     if "io" in opts.picks:
         # IO Notes:
-        #     n_ios  = rd_ios + wr_ios
         #     rrqms  = rd_merges
         #     wrqms  = wr_merges
         #     %rrqm  = 100 * rd_merges / (rd_merges + rd_ios)  if rd_merges + rd_ios else 0.0
@@ -1531,15 +1600,37 @@ def display_lines(it_line, i, agregates = {}):
         #     ws     = wr_ios 
         #     rsecs  = rd_sectors 
         #     wsecs  = wr_sectors
-        #     rqsize = (rd_sectors + wr_sectors) / (2 * n_ios) if n_ios              else 0.0
         #     rarqsz = rd_sectors / (2 * rd_ios)               if rd_ios             else 0.0
         #     warqsz = wr_sectors / (2 * wr_ios)               if wr_ios             else 0.0  
-        #     qusize = aveq / 1000
-        #     await  = (rd_ticks + wr_ticks) / n_ios           if n_ios              else 0.0
         #     rawait = rd_ticks / rd_ios                       if rd_ios             else 0.0  
         #     wawait = wr_ticks / wr_ios                       if wr_ios             else 0.0
-        #     svctm  = ticks / n_ios                           if n_ios              else 0.0
+
+        #     qusize = aveq / 1000
+        #     n_ios  = rd_ios + wr_ios
+        #     await  = (rd_ticks + wr_ticks) / n_ios           if n_ios              else 0.0      retired
+        #     rqsize = (rd_sectors + wr_sectors) / (2 * n_ios) if n_ios              else 0.0      retired
+        #     svctm  = ticks / n_ios                           if n_ios              else 0.0      retired
         #     util   = ticks / 10                              if (ticks / 10) < 100 else 100
+
+        #     drqms  = di_merges
+        #     %drqm  = 100 * di_merges / (di_merges + di_ios)  if di_merges + di_ios else 0.0
+        #     ds     = di_ios
+        #     dsecs  = di_sectors
+        #     darqsz = di_sectors / (2 * di_ios)               if di_ios             else 0.0
+        #     dawait = di_ticks / di_ios                       if di_ios             else 0.0
+
+        #     fs     = fl_ios
+        #     fawait = fl_ticks / fl_ios                       if fl_ios             else 0.0
+
+        #     rd2cs  = rd_d2c
+        #     wd2cs  = wr_d2c
+        #     dd2cs  = di_d2c
+        #     rad2cs = rd_d2c / rd_sectors                     if rd_sectors         else 0.0
+        #     wad2cs = wr_d2c / wr_sectors                     if wr_sectors         else 0.0
+        #     dad2cs = di_d2c / di_sectors                     if di_sectors         else 0.0
+        #     rad2ci = rd_d2c / rd_ios                         if rd_ios             else 0.0
+        #     wad2ci = wr_d2c / wr_ios                         if wr_ios             else 0.0
+        #     dad2ci = di_d2c / di_ios                         if di_ios             else 0.0
 
         sum_diskstats_rd_merges  = 0
         sum_diskstats_wr_merges  = 0
@@ -1551,8 +1642,22 @@ def display_lines(it_line, i, agregates = {}):
         sum_diskstats_wr_ticks   = 0
         sum_diskstats_ticks      = 0
         sum_diskstats_aveq       = 0
+
+        sum_diskstats_di_merges  = 0
+        sum_diskstats_di_ios     = 0
+        sum_diskstats_di_sectors = 0
+        sum_diskstats_di_ticks   = 0
+        sum_diskstats_fl_ios     = 0
+        sum_diskstats_fl_ticks   = 0
+        sum_diskstats_rd_d2c     = 0
+        sum_diskstats_wr_d2c     = 0
+        sum_diskstats_di_d2c     = 0
+
         device_size = len(opts.formats_devices['io'])
+        # start loop opts.formats_devices['io'].
         for it_device in opts.formats_devices['io']:
+
+            # Get the raw value and calculate the composite metric
             it_diskstats_rd_merges  = float(it_line[it_device+'_diskstats_rd_merges'])
             it_diskstats_wr_merges  = float(it_line[it_device+'_diskstats_wr_merges'])
             it_diskstats_rd_ios     = float(it_line[it_device+'_diskstats_rd_ios'])
@@ -1563,7 +1668,6 @@ def display_lines(it_line, i, agregates = {}):
             it_diskstats_wr_ticks   = float(it_line[it_device+'_diskstats_wr_ticks'])
             it_diskstats_ticks      = float(it_line[it_device+'_diskstats_ticks'])
             it_diskstats_aveq       = float(it_line[it_device+'_diskstats_aveq'])
-
             it_diskstats_n_ios  = it_diskstats_rd_ios + it_diskstats_wr_ios
             it_diskstats_prrqm  = 100 * it_diskstats_rd_merges / (it_diskstats_rd_merges + it_diskstats_rd_ios) if it_diskstats_rd_merges + it_diskstats_rd_ios else 0.0
             it_diskstats_pwrqm  = 100 * it_diskstats_wr_merges / (it_diskstats_wr_merges + it_diskstats_wr_ios) if it_diskstats_wr_merges + it_diskstats_wr_ios else 0.0
@@ -1577,6 +1681,32 @@ def display_lines(it_line, i, agregates = {}):
             it_diskstats_svctm  = it_diskstats_ticks / it_diskstats_n_ios if it_diskstats_n_ios else 0.0
             it_diskstats_util   = it_diskstats_ticks / 10 if (it_diskstats_ticks / 10) < 100 else 100
 
+            if opts.linux_version_code >= kernel_version(4, 19, 0):
+                it_diskstats_di_merges  = float(it_line[it_device+'_diskstats_di_merges'])
+                it_diskstats_di_ios     = float(it_line[it_device+'_diskstats_di_ios'])
+                it_diskstats_di_sectors = float(it_line[it_device+'_diskstats_di_sectors'])
+                it_diskstats_di_ticks   = float(it_line[it_device+'_diskstats_di_ticks'])
+                it_diskstats_pdrqm      = 100 * it_diskstats_di_merges / (it_diskstats_di_merges + it_diskstats_di_ios) if it_diskstats_di_merges + it_diskstats_di_ios else 0.0
+                it_diskstats_darqsz     = it_diskstats_di_sectors / (2 * it_diskstats_di_ios) if it_diskstats_di_ios else 0.0
+                it_diskstats_dawait     = it_diskstats_di_ticks / it_diskstats_di_ios if it_diskstats_di_ios else 0.0
+
+            if opts.linux_version_code >= kernel_version(5, 5, 0):
+                it_diskstats_fl_ios     = float(it_line[it_device+'_diskstats_fl_ios'])
+                it_diskstats_fl_ticks   = float(it_line[it_device+'_diskstats_fl_ticks'])
+                it_diskstats_fawait     = it_diskstats_fl_ticks / it_diskstats_fl_ios if it_diskstats_fl_ios else 0.0
+
+            if opts.anolis and opts.linux_version_code >= kernel_version(4, 9, 168):
+                it_diskstats_rd_d2c     = float(it_line[it_device+'_diskstats_rd_d2c'])
+                it_diskstats_wr_d2c     = float(it_line[it_device+'_diskstats_wr_d2c'])
+                it_diskstats_di_d2c     = float(it_line[it_device+'_diskstats_di_d2c'])
+                it_diskstats_rd_ad2c_sz = 2 * 1024 * it_diskstats_rd_d2c / it_diskstats_rd_sectors if it_diskstats_rd_sectors else 0.0
+                it_diskstats_wr_ad2c_sz = 2 * 1024 * it_diskstats_wr_d2c / it_diskstats_wr_sectors if it_diskstats_wr_sectors else 0.0
+                it_diskstats_di_ad2c_sz = 2 * 1024 * it_diskstats_di_d2c / it_diskstats_di_sectors if it_diskstats_di_sectors else 0.0
+                it_diskstats_rd_ad2c_io = it_diskstats_rd_d2c / it_diskstats_rd_ios if it_diskstats_rd_ios else 0.0
+                it_diskstats_wr_ad2c_io = it_diskstats_wr_d2c / it_diskstats_wr_ios if it_diskstats_wr_ios else 0.0
+                it_diskstats_di_ad2c_io = it_diskstats_di_d2c / it_diskstats_di_ios if it_diskstats_di_ios else 0.0
+
+            # If the --io mode is sum mode, sum the raw values of every item.
             if opts.item_mode['io'] == "sum":
                 sum_diskstats_rd_merges  += it_diskstats_rd_merges
                 sum_diskstats_wr_merges  += it_diskstats_wr_merges
@@ -1588,7 +1718,25 @@ def display_lines(it_line, i, agregates = {}):
                 sum_diskstats_wr_ticks   += it_diskstats_wr_ticks
                 sum_diskstats_ticks      += it_diskstats_ticks
                 sum_diskstats_aveq       += it_diskstats_aveq
+
+                if opts.linux_version_code >= kernel_version(4, 19, 0):
+                    sum_diskstats_di_merges  += it_diskstats_di_merges
+                    sum_diskstats_di_ios     += it_diskstats_di_ios
+                    sum_diskstats_di_sectors += it_diskstats_di_sectors
+                    sum_diskstats_di_ticks   += it_diskstats_di_ticks
+
+                if opts.linux_version_code >= kernel_version(5, 5, 0):
+                    sum_diskstats_fl_ios     += it_diskstats_fl_ios
+                    sum_diskstats_fl_ticks   += it_diskstats_fl_ticks
+
+                if opts.anolis and opts.linux_version_code >= kernel_version(4, 9, 168):
+                    sum_diskstats_rd_d2c   += it_diskstats_rd_d2c
+                    sum_diskstats_wr_d2c   += it_diskstats_wr_d2c
+                    sum_diskstats_di_d2c   += it_diskstats_di_d2c
+
+            # the --io mode is not sum mode.
             else:
+                # if tsar mode is not live mode (in other words normal mode), add the same metric at different times to the list.
                 if not opts.live:
                     agregates[it_device+'_io_rrqms'].append(it_diskstats_rd_merges)
                     agregates[it_device+'_io_wrqms'].append(it_diskstats_wr_merges)
@@ -1607,7 +1755,28 @@ def display_lines(it_line, i, agregates = {}):
                     agregates[it_device+'_io_wawait'].append(it_diskstats_wawait)
                     agregates[it_device+'_io_svctm'].append(it_diskstats_svctm)
                     agregates[it_device+'_io_util'].append(it_diskstats_util)
+                    if opts.linux_version_code >= kernel_version(4, 19, 0):
+                        agregates[it_device+'_io_drqms'].append(it_diskstats_di_merges)
+                        agregates[it_device+'_io_%drqm'].append(it_diskstats_pdrqm)
+                        agregates[it_device+'_io_ds'].append(it_diskstats_di_ios)
+                        agregates[it_device+'_io_dsecs'].append(it_diskstats_di_sectors)
+                        agregates[it_device+'_io_darqsz'].append(it_diskstats_darqsz)
+                        agregates[it_device+'_io_dawait'].append(it_diskstats_dawait)
+                    if opts.linux_version_code >= kernel_version(5, 5, 0):
+                        agregates[it_device+'_io_fs'].append(it_diskstats_fl_ios)
+                        agregates[it_device+'_io_fawait'].append(it_diskstats_fawait)
+                    if opts.anolis and opts.linux_version_code >= kernel_version(4, 9, 168):
+                        agregates[it_device+'_io_rd2cs'].append(it_diskstats_rd_d2c)
+                        agregates[it_device+'_io_wd2cs'].append(it_diskstats_wr_d2c)
+                        agregates[it_device+'_io_dd2cs'].append(it_diskstats_di_d2c)
+                        agregates[it_device+'_io_rad2cs'].append(it_diskstats_rd_ad2c_sz)
+                        agregates[it_device+'_io_wad2cs'].append(it_diskstats_wr_ad2c_sz)
+                        agregates[it_device+'_io_dad2cs'].append(it_diskstats_di_ad2c_sz)
+                        agregates[it_device+'_io_rad2ci'].append(it_diskstats_rd_ad2c_io)
+                        agregates[it_device+'_io_wad2ci'].append(it_diskstats_wr_ad2c_io)
+                        agregates[it_device+'_io_dad2ci'].append(it_diskstats_di_ad2c_io)
 
+                # performing a formatted assignment to a dictionary key.
                 it_line[it_device+'_io_rrqms']  = '{:>7}'.format(format_bytes(it_diskstats_rd_merges))
                 it_line[it_device+'_io_wrqms']  = '{:>7}'.format(format_bytes(it_diskstats_wr_merges))
                 it_line[it_device+'_io_%rrqm']  = '{:>7}'.format(format_bytes(it_diskstats_prrqm))
@@ -1625,8 +1794,33 @@ def display_lines(it_line, i, agregates = {}):
                 it_line[it_device+'_io_wawait']  = '{:>7}'.format(format_bytes(it_diskstats_wawait))
                 it_line[it_device+'_io_svctm']  = '{:>7}'.format(format_bytes(it_diskstats_svctm))
                 it_line[it_device+'_io_util']   = '{:>7}'.format(format_bytes(it_diskstats_util))
+                if opts.linux_version_code >= kernel_version(4, 19, 0):
+                    it_line[it_device+'_io_drqms']  = '{:>7}'.format(format_bytes(it_diskstats_di_merges))
+                    it_line[it_device+'_io_%drqm']  = '{:>7}'.format(format_bytes(it_diskstats_pdrqm))
+                    it_line[it_device+'_io_ds']     = '{:>7}'.format(format_bytes(it_diskstats_di_ios))
+                    it_line[it_device+'_io_dsecs']  = '{:>7}'.format(format_bytes(it_diskstats_di_sectors))
+                    it_line[it_device+'_io_darqsz'] = '{:>7}'.format(format_bytes(it_diskstats_darqsz))
+                    it_line[it_device+'_io_dawait'] = '{:>7}'.format(format_bytes(it_diskstats_dawait))
+                if opts.linux_version_code >= kernel_version(5, 5, 0):
+                    it_line[it_device+'_io_fs']     = '{:>7}'.format(format_bytes(it_diskstats_fl_ios))
+                    it_line[it_device+'_io_fawait'] = '{:>7}'.format(format_bytes(it_diskstats_fawait))
+                if opts.anolis and opts.linux_version_code >= kernel_version(4, 9, 168):
+                    it_line[it_device+'_io_rd2cs']   = '{:>7}'.format(format_bytes(it_diskstats_rd_d2c))
+                    it_line[it_device+'_io_wd2cs']   = '{:>7}'.format(format_bytes(it_diskstats_wr_d2c))
+                    it_line[it_device+'_io_dd2cs']   = '{:>7}'.format(format_bytes(it_diskstats_di_d2c))
+                    it_line[it_device+'_io_rad2cs']  = '{:>7}'.format(format_bytes(it_diskstats_rd_ad2c_sz))
+                    it_line[it_device+'_io_wad2cs']  = '{:>7}'.format(format_bytes(it_diskstats_wr_ad2c_sz))
+                    it_line[it_device+'_io_dad2cs']  = '{:>7}'.format(format_bytes(it_diskstats_di_ad2c_sz))
+                    it_line[it_device+'_io_rad2ci']  = '{:>7}'.format(format_bytes(it_diskstats_rd_ad2c_io))
+                    it_line[it_device+'_io_wad2ci']  = '{:>7}'.format(format_bytes(it_diskstats_wr_ad2c_io))
+                    it_line[it_device+'_io_dad2ci']  = '{:>7}'.format(format_bytes(it_diskstats_di_ad2c_io))
 
+        # end loop opts.formats_devices['io'].
+
+        # If the --io mode is sum mode. 
         if opts.item_mode['io'] == "sum":
+
+            # calculate the composite metric of sum value.
             sum_diskstats_n_ios  = sum_diskstats_rd_ios + sum_diskstats_wr_ios
             sum_diskstats_prrqm  = 100 * sum_diskstats_rd_merges / (sum_diskstats_rd_merges + sum_diskstats_rd_ios) if sum_diskstats_rd_merges + sum_diskstats_rd_ios else 0.0
             sum_diskstats_pwrqm  = 100 * sum_diskstats_wr_merges / (sum_diskstats_wr_merges + sum_diskstats_wr_ios) if sum_diskstats_wr_merges + sum_diskstats_wr_ios else 0.0
@@ -1639,7 +1833,21 @@ def display_lines(it_line, i, agregates = {}):
             sum_diskstats_wawait = sum_diskstats_wr_ticks / sum_diskstats_wr_ios if sum_diskstats_wr_ios else 0.0
             sum_diskstats_svctm  = sum_diskstats_ticks / sum_diskstats_n_ios if sum_diskstats_n_ios else 0.0
             sum_diskstats_util   = sum_diskstats_ticks / 10 / device_size if (sum_diskstats_ticks / 10 / device_size) < 100 else 100
+            if opts.linux_version_code >= kernel_version(4, 19, 0):
+                sum_diskstats_pdrqm  = 100 * sum_diskstats_di_merges / (sum_diskstats_di_merges + sum_diskstats_di_ios) if sum_diskstats_di_merges + sum_diskstats_di_ios else 0.0
+                sum_diskstats_darqsz = sum_diskstats_di_sectors / (2 * sum_diskstats_di_ios) if sum_diskstats_di_ios else 0.0
+                sum_diskstats_dawait = sum_diskstats_di_ticks / sum_diskstats_di_ios if sum_diskstats_di_ios else 0.0
+            if opts.linux_version_code >= kernel_version(5, 5, 0):
+                sum_diskstats_fawait = sum_diskstats_fl_ticks / sum_diskstats_fl_ios if sum_diskstats_fl_ios else 0.0
+            if opts.anolis and opts.linux_version_code >= kernel_version(4, 9, 168):
+                sum_diskstats_rd_ad2c_sz = 2 * 1024 * sum_diskstats_rd_d2c / sum_diskstats_rd_sectors if sum_diskstats_rd_sectors else 0.0
+                sum_diskstats_wr_ad2c_sz = 2 * 1024 * sum_diskstats_wr_d2c / sum_diskstats_wr_sectors if sum_diskstats_wr_sectors else 0.0
+                sum_diskstats_di_ad2c_sz = 2 * 1024 * sum_diskstats_di_d2c / sum_diskstats_di_sectors if sum_diskstats_di_sectors else 0.0
+                sum_diskstats_rd_ad2c_io = sum_diskstats_rd_d2c / sum_diskstats_rd_ios if sum_diskstats_rd_ios else 0.0
+                sum_diskstats_wr_ad2c_io = sum_diskstats_wr_d2c / sum_diskstats_wr_ios if sum_diskstats_wr_ios else 0.0
+                sum_diskstats_di_ad2c_io = sum_diskstats_di_d2c / sum_diskstats_di_ios if sum_diskstats_di_ios else 0.0
 
+            # if tsar mode is not live mode (in other words normal mode), add the same sum metric at different times to the list.
             if not opts.live:
                 agregates['sum_io_rrqms'].append(sum_diskstats_rd_merges)
                 agregates['sum_io_wrqms'].append(sum_diskstats_wr_merges)
@@ -1658,7 +1866,28 @@ def display_lines(it_line, i, agregates = {}):
                 agregates['sum_io_wawait'].append(sum_diskstats_wawait)
                 agregates['sum_io_svctm'].append(sum_diskstats_svctm)
                 agregates['sum_io_util'].append(sum_diskstats_util)
+                if opts.linux_version_code >= kernel_version(4, 19, 0):
+                    agregates['sum_io_drqms'].append(sum_diskstats_di_merges)
+                    agregates['sum_io_%drqm'].append(sum_diskstats_pdrqm)
+                    agregates['sum_io_ds'].append(sum_diskstats_di_ios)
+                    agregates['sum_io_dsecs'].append(sum_diskstats_di_sectors)
+                    agregates['sum_io_darqsz'].append(sum_diskstats_darqsz)
+                    agregates['sum_io_dawait'].append(sum_diskstats_dawait)
+                if opts.linux_version_code >= kernel_version(5, 5, 0):
+                    agregates['sum_io_fs'].append(sum_diskstats_fl_ios)
+                    agregates['sum_io_fawait'].append(sum_diskstats_fawait)
+                if opts.anolis and opts.linux_version_code >= kernel_version(4, 9, 168):
+                    agregates['sum_io_rd2cs'].append(sum_diskstats_rd_d2c)
+                    agregates['sum_io_wd2cs'].append(sum_diskstats_wr_d2c)
+                    agregates['sum_io_dd2cs'].append(sum_diskstats_di_d2c)
+                    agregates['sum_io_rad2cs'].append(sum_diskstats_rd_ad2c_sz)
+                    agregates['sum_io_wad2cs'].append(sum_diskstats_wr_ad2c_sz)
+                    agregates['sum_io_dad2cs'].append(sum_diskstats_di_ad2c_sz)
+                    agregates['sum_io_rad2ci'].append(sum_diskstats_rd_ad2c_io)
+                    agregates['sum_io_wad2ci'].append(sum_diskstats_wr_ad2c_io)
+                    agregates['sum_io_dad2ci'].append(sum_diskstats_di_ad2c_io)
 
+            # performing a formatted assignment of sum metric to a dictionary key.
             it_line['sum_io_rrqms']  = '{:>7}'.format(format_bytes(sum_diskstats_rd_merges))
             it_line['sum_io_wrqms']  = '{:>7}'.format(format_bytes(sum_diskstats_wr_merges))
             it_line['sum_io_%rrqm']  = '{:>7}'.format(format_bytes(sum_diskstats_prrqm))
@@ -1676,6 +1905,27 @@ def display_lines(it_line, i, agregates = {}):
             it_line['sum_io_wawait'] = '{:>7}'.format(format_bytes(sum_diskstats_wawait))
             it_line['sum_io_svctm']  = '{:>7}'.format(format_bytes(sum_diskstats_svctm))
             it_line['sum_io_util']   = '{:>7}'.format(format_bytes(sum_diskstats_util))
+            if opts.linux_version_code >= kernel_version(4, 19, 0):
+                it_line['sum_io_drqms']  = '{:>7}'.format(format_bytes(sum_diskstats_di_merges))
+                it_line['sum_io_%drqm']  = '{:>7}'.format(format_bytes(sum_diskstats_pdrqm))
+                it_line['sum_io_ds']     = '{:>7}'.format(format_bytes(sum_diskstats_di_ios))
+                it_line['sum_io_dsecs']  = '{:>7}'.format(format_bytes(sum_diskstats_di_sectors))
+                it_line['sum_io_darqsz'] = '{:>7}'.format(format_bytes(sum_diskstats_darqsz))
+                it_line['sum_io_dawait'] = '{:>7}'.format(format_bytes(sum_diskstats_dawait))
+            if opts.linux_version_code >= kernel_version(5, 5, 0):
+                it_line['sum_io_fs']     = '{:>7}'.format(format_bytes(sum_diskstats_fl_ios))
+                it_line['sum_io_fawait'] = '{:>7}'.format(format_bytes(sum_diskstats_fawait))
+            if opts.anolis and opts.linux_version_code >= kernel_version(4, 9, 168):
+                it_line['sum_io_rd2cs'] = '{:>7}'.format(format_bytes(sum_diskstats_rd_d2c))
+                it_line['sum_io_wd2cs'] = '{:>7}'.format(format_bytes(sum_diskstats_wr_d2c))
+                it_line['sum_io_dd2cs'] = '{:>7}'.format(format_bytes(sum_diskstats_di_d2c))
+                it_line['sum_io_rad2cs'] = '{:>7}'.format(format_bytes(sum_diskstats_rd_ad2c_sz))
+                it_line['sum_io_wad2cs'] = '{:>7}'.format(format_bytes(sum_diskstats_wr_ad2c_sz))
+                it_line['sum_io_dad2cs'] = '{:>7}'.format(format_bytes(sum_diskstats_di_ad2c_sz))
+                it_line['sum_io_rad2ci'] = '{:>7}'.format(format_bytes(sum_diskstats_rd_ad2c_io))
+                it_line['sum_io_wad2ci'] = '{:>7}'.format(format_bytes(sum_diskstats_wr_ad2c_io))
+                it_line['sum_io_dad2ci'] = '{:>7}'.format(format_bytes(sum_diskstats_di_ad2c_io))
+
 
     if "pcsw" in opts.picks:
         stat_ctxt      = float(it_line['stat_ctxt'])
@@ -1975,6 +2225,7 @@ def activity_reporter(optl):
 
 def main():
     global vi
+    global vi_addon
     global default_vi
     global vi_widths
 
@@ -1993,6 +2244,12 @@ def main():
     vi['retran']  = ['RetransSegs', 'FastRetrans', 'LossProbes', 'RTORetrans', 'RTORatio', 'LostRetransmit', 'ForwardRetrans', 'SlowStartRetrans', 'RetransFail', 'SynRetrans']
     vi['tcpdrop'] = ['LockDroppedIcmps', 'ListenDrops', 'ListenOverflows', 'PrequeueDropped', 'BacklogDrop', 'MinTTLDrop', 'DeferAcceptDrop', 'ReqQFullDrop', 'OFODrop']
     vi['tcperr']  = ['RenoFailures', 'SackFailures', 'LossFailures', 'AbortOnMemory', 'AbortFailed', 'TimeWaitOverflow', 'FastOpenListenOverflow']
+
+    vi_addon = {}
+    vi_addon['io'] = {}
+    vi_addon['io']['discard'] = ['drqms', '%drqm', 'ds', 'dsecs', 'darqsz', 'dawait']
+    vi_addon['io']['flush']   = ['fs', 'fawait']
+    vi_addon['io']['d2c']     = ['rd2cs', 'wd2cs', 'dd2cs', 'rad2cs', 'wad2cs', 'dad2cs', 'rad2ci', 'wad2ci', 'dad2ci']
 
     vi_widths = {}
     vi_widths['tcpofo']  = {'OfoPruned':9, 'DSACKOfoSent':12, 'DSACKOfoRecv':12, 'OFOQueue':8, 'OFOMerge':8}
@@ -2043,6 +2300,7 @@ Examples:
     groupo.add_argument('-s','--spec'    ,dest='spec'     ,type=str,                    help='show spec field data, %(prog)s --cpu -s sys,util')
     groupo.add_argument('-f','--finish'  ,dest='finish'   ,type=str,                    help='finish datetime, %(prog)s -f 19/09/21-10:25')
     groupo.add_argument(     '--path'    ,dest='path'     ,type=str,                    help='specify a dir path as input')
+    groupo.add_argument(     '--anolis'  ,dest='anolis'   ,type=str2bool,               help='specify operating system is anolis kernel, %(prog)s --anolis=False')
  
     group1 = groupo.add_mutually_exclusive_group()
     group1.add_argument('-w','--watch'   ,dest='watch'    ,type=int, metavar='N',       help='display last records in N mimutes. %(prog)s --watch 30 --cpu')

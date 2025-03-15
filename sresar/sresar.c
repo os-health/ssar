@@ -2515,14 +2515,14 @@ int main(int argc, char* argv[]){
         }
 
 create_thread:
-        if(opts->load5s_flag && pthread_create(&loadrd_mtid, it_attr_p, loadrd_thread, (void *)opts) != 0){
-            THREAD_INFO("Cannot create real_time loadrd_thread.");
-            if(pthread_create(&loadrd_mtid, NULL, loadrd_thread, (void *)opts) != 0){
-                THREAD_INFO("Cannot create loadrd_thread.");
+        if(opts->load5s_flag && pthread_create(&load1_mtid, it_attr_p, load1_thread, (void *)opts) != 0){
+            THREAD_INFO("Cannot create real_time load1_thread.");
+            if(pthread_create(&load1_mtid, NULL, load1_thread, (void *)opts) != 0){
+                THREAD_INFO("Cannot create load1_thread.");
             }
         }
-        if(opts->load5s_flag && pthread_create(&load1_mtid, NULL, load1_thread, (void *)opts) != 0){
-            THREAD_INFO("Cannot create load1_thread");
+        if(opts->load5s_flag && pthread_create(&loadrd_mtid, NULL, loadrd_thread, (void *)opts) != 0){
+            THREAD_INFO("Cannot create loadrd_thread");
         }
         if(opts->proc_flag && pthread_create(&sresar_mtid, NULL, sresar_thread, (void *)opts) != 0){
             THREAD_INFO("Cannot create sresar_thread.");
